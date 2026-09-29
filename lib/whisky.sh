@@ -298,6 +298,7 @@ clear_dll_override_scope() {
 sync_program_dll_overrides() {
   local game_key="HKCU\\Software\\Wine\\AppDefaults\\$ORI_EXE\\DllOverrides"
   local clause name mode
+  local -a clauses
 
   # The bottle itself has no graphics override. This keeps Steam and all of its
   # helper processes on Wine's default/builtin graphics stack.
