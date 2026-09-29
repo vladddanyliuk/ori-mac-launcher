@@ -82,7 +82,10 @@ launch_steam() {
 ori_process_running() {
   local tasks
   tasks="$(wine_run tasklist 2>/dev/null || true)"
-  printf '%s\n' "$tasks" | grep -Eiq '(^|[[:space:]])'"$ORI_EXE"'([[:space:]]|$)'
+  if [[ -z "$tasks" ]]; then
+    tasks="$(wine_run winedbg --command "info proc" 2>/dev/null || true)"
+  fi
+  printf '%s\n' "$tasks" | grep -Fqi "$ORI_EXE"
 }
 
 wait_for_ori_process() {
@@ -100,6 +103,8 @@ wait_for_ori_process() {
 
 launch_ori() {
   if ! steam_has_login; then
+    printf 'LAST_LAUNCH_STATUS=steam-sign-in-required\n' > "$STATE_DIR/last-launch.env"
+    printf 'LAST_LAUNCH_AT=%q\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> "$STATE_DIR/last-launch.env"
     warn "Steam is installed, but no signed-in account is detected."
     info "Opening Steam so you can sign in. Re-run ./ori afterwards."
     launch_steam
