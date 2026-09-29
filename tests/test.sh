@@ -46,7 +46,13 @@ for path, exp in zip(sys.argv[1:], expected):
     assert p["display"]["targetHeight"] == 1080
     assert p["display"]["retinaMode"] == "n"
     assert p["environment"]["WINEESYNC"] == "1"
-    assert p["environment"]["WINEMSYNC"] == "0"
+    if p["slug"] in ("blind", "blind-de"):
+        assert p["environment"]["WINEMSYNC"] == "1"
+        assert p["screenmanagerRegistry"] == 1
+        assert p["fullscreenRegistryName"] == "Screenmanager Is Fullscreen mode_h3981298716"
+    else:
+        assert p["environment"]["WINEMSYNC"] == "0"
+        assert p["fullscreenRegistryName"] == "Screenmanager Fullscreen mode_h3630240806"
     assert p["audio"]["driver"] == "coreaudio"
 PY
 pass "game profiles"
@@ -72,10 +78,12 @@ grep -Fq -- '-screen-fullscreen' "$ROOT/lib/steam.sh" || fail "fullscreen arg mi
 pass "Unity display args"
 
 echo "[7/10] tuning contract"
-grep -Fq 'TUNING_SCHEMA_VERSION="5"' "$ROOT/lib/whisky.sh" || fail "tuning schema not bumped"
+grep -Fq 'TUNING_SCHEMA_VERSION="6"' "$ROOT/lib/whisky.sh" || fail "tuning schema not bumped"
 grep -Fq "HelBuflen" "$ROOT/lib/whisky.sh" || fail "audio buffer tuning missing"
 grep -Fq "RetinaMode" "$ROOT/lib/whisky.sh" || fail "Retina handling missing"
 grep -Fq "screenmanagerRegistry" "$ROOT/lib/whisky.sh" || fail "profile-aware registry handling missing"
+grep -Fq "screenWidthRegistryName" "$ROOT/lib/whisky.sh" || fail "profile width registry key handling missing"
+grep -Fq "fullscreenRegistryName" "$ROOT/lib/whisky.sh" || fail "profile fullscreen registry key handling missing"
 pass "tuning contract"
 
 echo "[8/10] path safety"
