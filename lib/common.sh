@@ -7,7 +7,7 @@ DOWNLOAD_DIR="$APP_SUPPORT_DIR/downloads"
 CONFIG_DIR="$APP_SUPPORT_DIR/config"
 LOG_DIR="${HOME}/Library/Logs/${APP_NAME}"
 CURRENT_LOG="$LOG_DIR/ori.log"
-GAME_PROFILE="$ROOT_DIR/config/ori.json"
+GAME_PROFILE="$ROOT_DIR/config/ori.plist"
 
 profile_value() {
   local key="$1"
