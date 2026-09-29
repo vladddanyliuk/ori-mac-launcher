@@ -1,0 +1,9 @@
+{
+  "name": "Ori and the Will of the Wisps",
+  "steamAppId": 1057090,
+  "bottle": "OriMac",
+  "windowsVersion": "win10",
+  "runtimeProvider": "Whisky",
+  "renderer": "DXMT/DXVK managed by Whisky",
+  "launchArguments": []
+}
