@@ -12,7 +12,7 @@ RUNTIME_SHA256="01f3a1b43b98065fe20c529c1023b61dd79a6d2ad93bba6040865f646481ccf3
 RUNTIME_DXMT_VERSION="0.80"
 RUNTIME_DXVK_VERSION="1.10.3"
 PREFIX_SCHEMA_VERSION="1"
-TUNING_SCHEMA_VERSION="3"
+TUNING_SCHEMA_VERSION="4"
 
 ORI_RUNTIME_DIR="$APP_SUPPORT_DIR/runtime"
 WHISKY_LIBRARIES="$ORI_RUNTIME_DIR/Libraries"
@@ -338,7 +338,10 @@ apply_game_tuning() {
   printf 'MSYNC=%q\n' "$(profile_value environment.WINEMSYNC)" >> "$state"
 
   if [[ "$applied" != "$TUNING_SCHEMA_VERSION" ]]; then
-    info "Applied M-series gaming profile: 2560x1440 exclusive fullscreen + CoreAudio stable buffer + ESYNC."
+    info "Resetting cached Wine audio devices for the new tuning profile..."
+    wine_run reg delete 'HKLM\Software\Microsoft\Windows\CurrentVersion\MMDevices' /f >/dev/null 2>&1 || true
+
+    info "Applied M-series gaming profile: forced 1920x1080 exclusive fullscreen + CoreAudio stable buffer + ESYNC."
     wine_env
     "$WHISKY_WINESERVER" -k >/dev/null 2>&1 || true
     "$WHISKY_WINESERVER" -w >/dev/null 2>&1 || true
