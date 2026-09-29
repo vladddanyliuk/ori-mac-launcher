@@ -21,12 +21,13 @@
   <key>fallbackRendererVersion</key><string>1.10.3</string>
   <key>display</key>
   <dict>
-    <key>retinaMode</key><string>n</string>
-    <key>dpi</key><integer>96</integer>
+    <key>retinaMode</key><string>y</string>
+    <key>dpi</key><integer>192</integer>
     <key>useNativeResolution</key><integer>0</integer>
     <key>fullscreenMode</key><integer>1</integer>
     <key>targetWidth</key><integer>1920</integer>
     <key>targetHeight</key><integer>1080</integer>
+    <key>videoMemoryMB</key><integer>8192</integer>
   </dict>
   <key>audio</key>
   <dict>
@@ -53,6 +54,11 @@
     <key>D3DM_VALIDATION</key><string>0</string>
     <key>MTL_DEBUG_LAYER</key><string>0</string>
     <key>MTL_ENABLE_METAL_EVENTS</key><string>0</string>
+    <key>MONO_THREADS_SUSPEND</key><string>1</string>
+    <key>WINE_LARGE_ADDRESS_AWARE</key><string>65536</string>
+    <key>D3DM_FORCE_D3D11</key><string>1</string>
+    <key>WINE_DISABLE_NTDLL_THREAD_REGS</key><string>1</string>
+    <key>WINEPRELOADRESERVE</key><string>1</string>
   </dict>
   <key>dllOverrides</key><string>dxgi=n,b;d3d10core=n,b;d3d11=n,b;winemetal=b;d3d12=</string>
   <key>steamLaunchMode</key><string>applaunch</string>
