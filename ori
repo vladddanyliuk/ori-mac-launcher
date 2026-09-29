@@ -3,9 +3,13 @@ set -Eeuo pipefail
 IFS=$'\n\t'
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/common.sh
 source "$ROOT_DIR/lib/common.sh"
+# shellcheck source=lib/platform.sh
 source "$ROOT_DIR/lib/platform.sh"
+# shellcheck source=lib/whisky.sh
 source "$ROOT_DIR/lib/whisky.sh"
+# shellcheck source=lib/steam.sh
 source "$ROOT_DIR/lib/steam.sh"
 
 usage() {
