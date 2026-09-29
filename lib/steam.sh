@@ -112,15 +112,19 @@ launch_ori() {
 doctor() {
   init_paths
 
-  local macos arch rosetta runtime prefix steam ori disk last_launch
+  local macos model arch rosetta runtime prefix steam steam_login ori disk last_launch app_writable logs_writable
   macos="$(sw_vers -productVersion 2>/dev/null || echo unknown)"
+  model="$(sysctl -n hw.model 2>/dev/null || echo unknown)"
   arch="$(uname -m)"
   rosetta="$(/usr/bin/arch -x86_64 /usr/bin/true >/dev/null 2>&1 && echo available || echo missing)"
   runtime="$(runtime_is_usable && echo ready || echo missing)"
   prefix="$(prefix_is_initialized && echo ready || echo missing)"
   steam="$(steam_is_installed && echo installed || echo missing)"
+  steam_login="$(steam_has_login && echo detected || echo not-detected)"
   ori="$(ori_is_installed && echo installed || echo missing)"
   disk="$(df -h "$HOME" | awk 'NR==2 {print $4}')"
+  app_writable="$([[ -w "$APP_SUPPORT_DIR" ]] && echo yes || echo no)"
+  logs_writable="$([[ -w "$LOG_DIR" ]] && echo yes || echo no)"
   last_launch="never"
   if [[ -f "$STATE_DIR/last-launch.env" ]]; then
     last_launch="$(tr '\n' ' ' < "$STATE_DIR/last-launch.env")"
@@ -130,6 +134,7 @@ doctor() {
 OriMac diagnostics
 ==================
 macOS:          $macos
+Mac model:      $model
 Architecture:   $arch
 Rosetta:        $rosetta
 Runtime:        $runtime
@@ -138,9 +143,12 @@ Renderer:       DXMT $RUNTIME_DXMT_VERSION
 Runtime wine:   $WHISKY_WINE
 Prefix:         $prefix
 Steam:          $steam
-Ori 1057090:    $ori
+Steam login:    $steam_login
+Ori $ORI_APP_ID:    $ori
 App support:    $APP_SUPPORT_DIR
 Logs:           $LOG_DIR
+App writable:   $app_writable
+Logs writable:  $logs_writable
 Disk free:      $disk
 Last launch:    $last_launch
 EOF
