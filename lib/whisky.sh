@@ -12,6 +12,7 @@ RUNTIME_SHA256="01f3a1b43b98065fe20c529c1023b61dd79a6d2ad93bba6040865f646481ccf3
 RUNTIME_DXMT_VERSION="0.80"
 RUNTIME_DXVK_VERSION="1.10.3"
 PREFIX_SCHEMA_VERSION="1"
+TUNING_SCHEMA_VERSION="2"
 
 ORI_RUNTIME_DIR="$APP_SUPPORT_DIR/runtime"
 WHISKY_LIBRARIES="$ORI_RUNTIME_DIR/Libraries"
@@ -123,13 +124,19 @@ wine_env() {
   WINHTTP_RECEIVE_TIMEOUT="$(profile_value environment.WINHTTP_RECEIVE_TIMEOUT)"
   WINE_FORCE_HTTP11="$(profile_value environment.WINE_FORCE_HTTP11)"
   WINE_MAX_CONNECTIONS_PER_SERVER="$(profile_value environment.WINE_MAX_CONNECTIONS_PER_SERVER)"
+  MVK_CONFIG_LOG_LEVEL="$(profile_value environment.MVK_CONFIG_LOG_LEVEL)"
+  D3DM_VALIDATION="$(profile_value environment.D3DM_VALIDATION)"
+  MTL_DEBUG_LAYER="$(profile_value environment.MTL_DEBUG_LAYER)"
+  MTL_ENABLE_METAL_EVENTS="$(profile_value environment.MTL_ENABLE_METAL_EVENTS)"
   CX_ROOT="$WHISKY_LIBRARIES/Wine"
   PATH="$WHISKY_LIBRARIES/Wine/bin:$PATH"
   export WINEPREFIX WINEDEBUG WINEESYNC WINEMSYNC
   export LC_ALL LANG LC_TIME LC_NUMERIC
   export CEF_DISABLE_SANDBOX STEAM_DISABLE_CEF_SANDBOX STEAM_RUNTIME
   export WINHTTP_CONNECT_TIMEOUT WINHTTP_RECEIVE_TIMEOUT WINE_FORCE_HTTP11
-  export WINE_MAX_CONNECTIONS_PER_SERVER CX_ROOT PATH
+  export WINE_MAX_CONNECTIONS_PER_SERVER
+  export MVK_CONFIG_LOG_LEVEL D3DM_VALIDATION MTL_DEBUG_LAYER MTL_ENABLE_METAL_EVENTS
+  export CX_ROOT PATH
 
   if [[ -d "$WHISKY_LIBRARIES/DXMT" ]]; then
     WINEDLLOVERRIDES="$(profile_value dllOverrides)"
@@ -261,6 +268,74 @@ ensure_ori_bottle() {
 
   printf 'PREFIX_VERSION=%s\n' "$PREFIX_SCHEMA_VERSION" > "$STATE_DIR/prefix.env"
   info "Prefix ready: $ORI_PREFIX"
+}
+
+detect_main_display_pixels() {
+  /usr/sbin/system_profiler SPDisplaysDataType -json 2>/dev/null | /usr/bin/python3 -c '
+import json, re, sys
+try:
+    data=json.load(sys.stdin).get("SPDisplaysDataType", [])
+    displays=[]
+    for gpu in data:
+        displays.extend(gpu.get("spdisplays_ndrvs", []) or [])
+    main=next((d for d in displays if d.get("spdisplays_main")=="spdisplays_yes"), displays[0] if displays else {})
+    raw=main.get("_spdisplays_pixels") or main.get("_spdisplays_resolution") or main.get("spdisplays_resolution") or ""
+    m=re.search(r"(\d+)\s*x\s*(\d+)", raw)
+    if m:
+        print(f"{m.group(1)}x{m.group(2)}")
+except Exception:
+    pass
+'
+}
+
+apply_display_tuning() {
+  local pixels width height
+  pixels="$(detect_main_display_pixels || true)"
+  width="${pixels%x*}"
+  height="${pixels#*x}"
+
+  wine_run reg add 'HKCU\Software\Wine\Mac Driver' /v RetinaMode /t REG_SZ /d "$(profile_value display.retinaMode)" /f >/dev/null
+  wine_run reg add 'HKCU\Control Panel\Desktop' /v LogPixels /t REG_DWORD /d "$(profile_value display.dpi)" /f >/dev/null
+
+  # Avoid Wine's virtual desktop: it can make a native game look like a streamed/scaled surface.
+  wine_run reg delete 'HKCU\Software\Wine\Explorer' /v Desktop /f >/dev/null 2>&1 || true
+
+  local game_key='HKCU\Software\Moon Studios\OriAndTheWilloftheWisps'
+  wine_run reg add "$game_key" /v 'Screenmanager Resolution Use Native_h1405027254' /t REG_DWORD /d "$(profile_value display.useNativeResolution)" /f >/dev/null
+  wine_run reg add "$game_key" /v 'Screenmanager Fullscreen mode_h3630240806' /t REG_DWORD /d "$(profile_value display.fullscreenMode)" /f >/dev/null
+
+  if [[ "$pixels" =~ ^[0-9]+x[0-9]+$ ]]; then
+    wine_run reg add "$game_key" /v 'Screenmanager Resolution Width_h182942802' /t REG_DWORD /d "$width" /f >/dev/null
+    wine_run reg add "$game_key" /v 'Screenmanager Resolution Height_h2627697771' /t REG_DWORD /d "$height" /f >/dev/null
+  fi
+}
+
+apply_audio_tuning() {
+  wine_run reg add 'HKCU\Software\Wine\Drivers' /v Audio /t REG_SZ /d "$(profile_value audio.driver)" /f >/dev/null
+  wine_run reg add 'HKCU\Software\Wine\DirectSound' /v HelBuflen /t REG_SZ /d "$(profile_value audio.directSoundBuffer)" /f >/dev/null
+}
+
+apply_game_tuning() {
+  local state="$STATE_DIR/tuning.env"
+  local applied=""
+  if [[ -f "$state" ]]; then
+    applied="$(awk -F= '/^TUNING_VERSION=/ {print $2; exit}' "$state" 2>/dev/null || true)"
+  fi
+
+  # Reapply on every launch because Unity may rewrite its Screenmanager keys.
+  apply_display_tuning
+  apply_audio_tuning
+
+  printf 'TUNING_VERSION=%s\n' "$TUNING_SCHEMA_VERSION" > "$state"
+  printf 'DISPLAY_PIXELS=%q\n' "$(detect_main_display_pixels || true)" >> "$state"
+  printf 'RETINA_MODE=%q\n' "$(profile_value display.retinaMode)" >> "$state"
+  printf 'DPI=%q\n' "$(profile_value display.dpi)" >> "$state"
+  printf 'AUDIO_DRIVER=%q\n' "$(profile_value audio.driver)" >> "$state"
+  printf 'AUDIO_BUFFER=%q\n' "$(profile_value audio.directSoundBuffer)" >> "$state"
+
+  if [[ "$applied" != "$TUNING_SCHEMA_VERSION" ]]; then
+    info "Applied Mac display/audio tuning: Retina HiDPI + native resolution + stable CoreAudio."
+  fi
 }
 
 runtime_self_test() {
