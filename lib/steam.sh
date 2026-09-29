@@ -193,9 +193,12 @@ launch_ori() {
 doctor() {
   init_paths
 
-  local macos model arch rosetta runtime prefix steam steam_login ori disk last_launch app_writable logs_writable
+  local macos model memory_gb display_pixels arch rosetta runtime prefix steam steam_login ori disk last_launch app_writable logs_writable tuning
   macos="$(sw_vers -productVersion 2>/dev/null || echo unknown)"
   model="$(sysctl -n hw.model 2>/dev/null || echo unknown)"
+  memory_gb="$(awk -v b="$(sysctl -n hw.memsize 2>/dev/null || echo 0)" 'BEGIN {printf "%.0f", b/1073741824}')"
+  display_pixels="$(detect_main_display_pixels 2>/dev/null || true)"
+  [[ -n "$display_pixels" ]] || display_pixels="unknown"
   arch="$(uname -m)"
   rosetta="$(/usr/bin/arch -x86_64 /usr/bin/true >/dev/null 2>&1 && echo available || echo missing)"
   runtime="$(runtime_is_usable && echo ready || echo missing)"
@@ -206,6 +209,10 @@ doctor() {
   disk="$(df -h "$HOME" | awk 'NR==2 {print $4}')"
   app_writable="$([[ -w "$APP_SUPPORT_DIR" ]] && echo yes || echo no)"
   logs_writable="$([[ -w "$LOG_DIR" ]] && echo yes || echo no)"
+  tuning="not-applied"
+  if [[ -f "$STATE_DIR/tuning.env" ]]; then
+    tuning="$(tr '\n' ' ' < "$STATE_DIR/tuning.env")"
+  fi
   last_launch="never"
   if [[ -f "$STATE_DIR/last-launch.env" ]]; then
     last_launch="$(tr '\n' ' ' < "$STATE_DIR/last-launch.env")"
@@ -216,11 +223,15 @@ OriMac diagnostics
 ==================
 macOS:          $macos
 Mac model:      $model
+Memory:         ${memory_gb} GB
+Display pixels: $display_pixels
 Architecture:   $arch
 Rosetta:        $rosetta
 Runtime:        $runtime
 Pinned version: $RUNTIME_VERSION
 Renderer:       DXMT $RUNTIME_DXMT_VERSION
+Retina/DPI:     $(profile_value display.retinaMode) / $(profile_value display.dpi)
+Audio:          $(profile_value audio.driver), buffer $(profile_value audio.directSoundBuffer)
 Runtime wine:   $WHISKY_WINE
 Prefix:         $prefix
 Steam:          $steam
@@ -231,6 +242,7 @@ Logs:           $LOG_DIR
 App writable:   $app_writable
 Logs writable:  $logs_writable
 Disk free:      $disk
+Tuning state:   $tuning
 Last launch:    $last_launch
 EOF
 
