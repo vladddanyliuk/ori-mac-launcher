@@ -230,7 +230,9 @@ Rosetta:        $rosetta
 Runtime:        $runtime
 Pinned version: $RUNTIME_VERSION
 Renderer:       DXMT $RUNTIME_DXMT_VERSION
+Game target:    $(profile_value display.targetWidth)x$(profile_value display.targetHeight), exclusive
 Retina/DPI:     $(profile_value display.retinaMode) / $(profile_value display.dpi)
+Sync:           ESYNC=$(profile_value environment.WINEESYNC), MSYNC=$(profile_value environment.WINEMSYNC)
 Audio:          $(profile_value audio.driver), buffer $(profile_value audio.directSoundBuffer)
 Runtime wine:   $WHISKY_WINE
 Prefix:         $prefix
