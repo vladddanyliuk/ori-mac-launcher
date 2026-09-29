@@ -15,10 +15,12 @@
 
   <key>display</key>
   <dict>
-    <key>retinaMode</key><string>y</string>
-    <key>dpi</key><integer>192</integer>
-    <key>useNativeResolution</key><integer>1</integer>
-    <key>fullscreenMode</key><integer>1</integer>
+    <key>retinaMode</key><string>n</string>
+    <key>dpi</key><integer>96</integer>
+    <key>useNativeResolution</key><integer>0</integer>
+    <key>fullscreenMode</key><integer>0</integer>
+    <key>targetWidth</key><integer>2560</integer>
+    <key>targetHeight</key><integer>1440</integer>
   </dict>
 
   <key>audio</key>
@@ -31,7 +33,7 @@
   <dict>
     <key>WINEDEBUG</key><string>-all</string>
     <key>WINEESYNC</key><string>1</string>
-    <key>WINEMSYNC</key><string>1</string>
+    <key>WINEMSYNC</key><string>0</string>
     <key>LC_ALL</key><string>en_US.UTF-8</string>
     <key>LANG</key><string>en_US.UTF-8</string>
     <key>LC_TIME</key><string>C</string>
@@ -56,9 +58,9 @@
 
   <key>knownWorkarounds</key>
   <array>
-    <string>Enable Wine RetinaMode and 192 DPI so games render at backing-pixel resolution instead of a low-resolution scaled surface.</string>
-    <string>Prefer borderless fullscreen at the native backing resolution for the built-in Mac display.</string>
-    <string>Force CoreAudio with the stable 131072-byte DirectSound buffer to reduce crackling/stutter.</string>
+    <string>Disable Wine RetinaMode for Ori to avoid hidden 2x backing-pixel rendering overhead; use an explicit 2560x1440 game render target instead.</string>
+    <string>Use Ori exclusive fullscreen with Use Native disabled and an explicit 2560x1440 render target for M-series MacBook Air performance.</string>
+    <string>Force CoreAudio with the stable 131072-byte DirectSound buffer to reduce crackling/stutter; use ESYNC without conflicting MSYNC.</string>
     <string>Use DXMT as the default DirectX 11 backend; DXMT v0.73 fixed Ori's historical missing-character rendering bug.</string>
     <string>Apply Steam Chromium locale and sandbox compatibility environment inherited from maintained Whisky launcher presets.</string>
     <string>Keep Ori in the dedicated prefix; do not reuse the native macOS Steam installation.</string>
