@@ -14,8 +14,17 @@ profile_value() {
   /usr/bin/plutil -extract "$key" raw -o - "$GAME_PROFILE" 2>/dev/null
 }
 
-ORI_APP_ID="$(profile_value steamAppId)"
-ORI_EXE="$(profile_value executable)"
+if [[ ! -r "$GAME_PROFILE" ]] || ! /usr/bin/plutil -lint "$GAME_PROFILE" >/dev/null 2>&1; then
+  printf 'OriMac: invalid or missing game profile: %s\n' "$GAME_PROFILE" >&2
+  exit 70
+fi
+
+ORI_APP_ID="$(profile_value steamAppId)" || exit 70
+ORI_EXE="$(profile_value executable)" || exit 70
+if [[ -z "$ORI_APP_ID" || -z "$ORI_EXE" ]]; then
+  printf 'OriMac: game profile is missing Steam App ID or executable.\n' >&2
+  exit 70
+fi
 
 init_paths() {
   mkdir -p "$STATE_DIR" "$DOWNLOAD_DIR" "$CONFIG_DIR" "$LOG_DIR"
