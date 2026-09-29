@@ -5,7 +5,6 @@ STEAM_INSTALLER="$DOWNLOAD_DIR/SteamSetup.exe"
 STEAM_DIR="$ORI_PREFIX/drive_c/Program Files (x86)/Steam"
 STEAM_EXE="$STEAM_DIR/Steam.exe"
 STEAM_APPS="$STEAM_DIR/steamapps"
-ORI_MANIFEST_NAME="appmanifest_${ORI_APP_ID}.acf"
 STEAM_LOGIN_USERS="$STEAM_DIR/config/loginusers.vdf"
 
 steam_installer_is_sane() {
@@ -44,7 +43,6 @@ ensure_steam() {
 
   download_steam
   info "Installing Windows Steam..."
-  # /S is the NSIS silent-install flag used by SteamSetup.
   wine_program_wait "$STEAM_INSTALLER" /S
 
   if ! steam_is_installed; then
@@ -58,23 +56,78 @@ ensure_steam() {
   }
 }
 
-ori_manifest_path() {
-  local candidate
+manifest_for_appid() {
+  local appid="$1"
+  local name="appmanifest_${appid}.acf"
+  local candidate="$STEAM_APPS/$name"
 
-  candidate="$STEAM_APPS/$ORI_MANIFEST_NAME"
   if [[ -f "$candidate" ]]; then
     printf '%s\n' "$candidate"
     return 0
   fi
 
-  # Steam can place a library elsewhere inside the isolated C: drive.
-  candidate="$(find "$ORI_PREFIX/drive_c" -type f -name "$ORI_MANIFEST_NAME" -print -quit 2>/dev/null || true)"
+  candidate="$(find "$ORI_PREFIX/drive_c" -type f -name "$name" -print -quit 2>/dev/null || true)"
   if [[ -n "$candidate" ]]; then
     printf '%s\n' "$candidate"
     return 0
   fi
 
   return 1
+}
+
+profile_slug_from_request() {
+  case "${1:-}" in
+    blind|first|261570) printf '%s\n' "blind" ;;
+    blind-de|de|definitive|387290) printf '%s\n' "blind-de" ;;
+    wotw|wisps|1057090) printf '%s\n' "wotw" ;;
+    "") return 1 ;;
+    *) return 2 ;;
+  esac
+}
+
+select_installed_game() {
+  local quiet="${1:-0}"
+
+  if manifest_for_appid 261570 >/dev/null 2>&1; then
+    load_game_profile "blind"
+  elif manifest_for_appid 387290 >/dev/null 2>&1; then
+    load_game_profile "blind-de"
+  elif manifest_for_appid 1057090 >/dev/null 2>&1; then
+    load_game_profile "wotw"
+  else
+    return 1
+  fi
+
+  [[ "$quiet" == "1" ]] || info "Detected installed game: $GAME_NAME (Steam $ORI_APP_ID)."
+}
+
+select_game_for_run() {
+  local requested="${1:-}"
+  local slug=""
+
+  if [[ -n "$requested" ]]; then
+    slug="$(profile_slug_from_request "$requested" || true)"
+    if [[ -z "$slug" ]]; then
+      error "Unknown Ori game selector: $requested"
+      error "Use: blind, blind-de, or wotw."
+      return 64
+    fi
+    load_game_profile "$slug"
+    info "Selected game: $GAME_NAME (Steam $ORI_APP_ID)."
+    return 0
+  fi
+
+  if select_installed_game 0; then
+    return 0
+  fi
+
+  # Fresh setup with no Ori installation: preserve the original project target.
+  load_game_profile "wotw"
+  info "No installed Ori title detected; defaulting to $GAME_NAME."
+}
+
+ori_manifest_path() {
+  manifest_for_appid "$ORI_APP_ID"
 }
 
 ori_is_installed() {
@@ -110,7 +163,6 @@ steam_has_login() {
 
 launch_steam() {
   info "Opening Windows Steam..."
-  # Do not use -silent here: first-run/login/install flows need the actual Steam UI.
   wine_program "$STEAM_EXE"
 }
 
@@ -128,7 +180,7 @@ wait_for_steam_login() {
 }
 
 open_ori_install_dialog() {
-  info "Opening Ori install dialog in Steam..."
+  info "Opening install dialog for $GAME_NAME..."
   wine_run start "steam://install/$ORI_APP_ID"
 }
 
@@ -165,11 +217,11 @@ ensure_ori_installed_interactive() {
   info "Choose the install location in Steam if asked. OriMac will wait for the download to finish."
 
   if ! wait_for_ori_install 14400; then
-    error "Ori installation was not detected within 4 hours."
+    error "$GAME_NAME installation was not detected within 4 hours."
     return 10
   fi
 
-  info "Ori installation detected."
+  info "$GAME_NAME installation detected."
 }
 
 ori_process_running() {
@@ -195,15 +247,22 @@ wait_for_ori_process() {
 }
 
 log_effective_ori_display() {
-  local game_key='HKCU\Software\Moon Studios\OriAndTheWilloftheWisps'
-  local width height fullscreen native
+  local uses_registry
+  uses_registry="$(profile_value screenmanagerRegistry 2>/dev/null || echo 0)"
 
+  if [[ "$uses_registry" != "1" ]]; then
+    info "Display mode is forced by Unity launch arguments for $GAME_NAME."
+    return 0
+  fi
+
+  local game_key width height fullscreen native
+  game_key="$(profile_value registryKey)"
   width="$(wine_run reg query "$game_key" /v 'Screenmanager Resolution Width_h182942802' 2>/dev/null | awk '/REG_DWORD/ {print $NF; exit}' || true)"
   height="$(wine_run reg query "$game_key" /v 'Screenmanager Resolution Height_h2627697771' 2>/dev/null | awk '/REG_DWORD/ {print $NF; exit}' || true)"
   fullscreen="$(wine_run reg query "$game_key" /v 'Screenmanager Fullscreen mode_h3630240806' 2>/dev/null | awk '/REG_DWORD/ {print $NF; exit}' || true)"
   native="$(wine_run reg query "$game_key" /v 'Screenmanager Resolution Use Native_h1405027254' 2>/dev/null | awk '/REG_DWORD/ {print $NF; exit}' || true)"
 
-  info "Ori display registry after launch: width=${width:-unknown} height=${height:-unknown} fullscreen=${fullscreen:-unknown} useNative=${native:-unknown}"
+  info "Display registry after launch: width=${width:-unknown} height=${height:-unknown} fullscreen=${fullscreen:-unknown} useNative=${native:-unknown}"
 }
 
 launch_ori() {
@@ -211,7 +270,6 @@ launch_ori() {
     printf 'LAST_LAUNCH_STATUS=steam-sign-in-required\n' > "$STATE_DIR/last-launch.env"
     printf 'LAST_LAUNCH_AT=%q\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> "$STATE_DIR/last-launch.env"
     warn "Steam is installed, but no signed-in account is detected."
-    info "Opening Steam so you can sign in. Re-run ./ori afterwards."
     launch_steam
     return 8
   fi
@@ -220,9 +278,7 @@ launch_ori() {
   target_width="$(profile_value display.targetWidth)"
   target_height="$(profile_value display.targetHeight)"
 
-  info "Launching Ori and the Will of the Wisps at ${target_width}x${target_height}..."
-  # Ori uses Unity 2018.4. Force the standalone-player mode every launch so
-  # game-side settings cannot silently fall back to the macOS logical resolution.
+  info "Launching $GAME_NAME at ${target_width}x${target_height}..."
   wine_program "$STEAM_EXE" -silent -applaunch "$ORI_APP_ID" \
     -force-d3d11 \
     -screen-width "$target_width" \
@@ -231,23 +287,37 @@ launch_ori() {
 
   if wait_for_ori_process; then
     printf 'LAST_LAUNCH_STATUS=started\n' > "$STATE_DIR/last-launch.env"
+    printf 'LAST_LAUNCH_GAME=%q\n' "$GAME_SLUG" >> "$STATE_DIR/last-launch.env"
     printf 'LAST_LAUNCH_AT=%q\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> "$STATE_DIR/last-launch.env"
-    info "Ori process detected: $ORI_EXE"
+    info "Game process detected: $ORI_EXE"
     sleep 4
     log_effective_ori_display
     return 0
   fi
 
   printf 'LAST_LAUNCH_STATUS=not-detected\n' > "$STATE_DIR/last-launch.env"
+  printf 'LAST_LAUNCH_GAME=%q\n' "$GAME_SLUG" >> "$STATE_DIR/last-launch.env"
   printf 'LAST_LAUNCH_AT=%q\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> "$STATE_DIR/last-launch.env"
   error "Steam received the launch request, but $ORI_EXE was not detected within 60 seconds."
-  error "Check Steam for a sign-in, update, first-run dialog, or game error."
   error "Diagnostics: ./ori --doctor"
   return 9
 }
 
+installed_ori_summary() {
+  local out=""
+  manifest_for_appid 261570 >/dev/null 2>&1 && out="${out}Blind Forest (261570), "
+  manifest_for_appid 387290 >/dev/null 2>&1 && out="${out}Blind Forest DE (387290), "
+  manifest_for_appid 1057090 >/dev/null 2>&1 && out="${out}Will of the Wisps (1057090), "
+  out="${out%, }"
+  [[ -n "$out" ]] && printf '%s\n' "$out" || printf '%s\n' "none"
+}
+
 doctor() {
   init_paths
+
+  if steam_is_installed; then
+    select_installed_game 1 || true
+  fi
 
   local macos model memory_gb display_pixels arch rosetta runtime prefix steam steam_login ori disk last_launch app_writable logs_writable tuning
   macos="$(sw_vers -productVersion 2>/dev/null || echo unknown)"
@@ -266,13 +336,9 @@ doctor() {
   app_writable="$([[ -w "$APP_SUPPORT_DIR" ]] && echo yes || echo no)"
   logs_writable="$([[ -w "$LOG_DIR" ]] && echo yes || echo no)"
   tuning="not-applied"
-  if [[ -f "$STATE_DIR/tuning.env" ]]; then
-    tuning="$(tr '\n' ' ' < "$STATE_DIR/tuning.env")"
-  fi
+  [[ -f "$STATE_DIR/tuning.env" ]] && tuning="$(tr '\n' ' ' < "$STATE_DIR/tuning.env")"
   last_launch="never"
-  if [[ -f "$STATE_DIR/last-launch.env" ]]; then
-    last_launch="$(tr '\n' ' ' < "$STATE_DIR/last-launch.env")"
-  fi
+  [[ -f "$STATE_DIR/last-launch.env" ]] && last_launch="$(tr '\n' ' ' < "$STATE_DIR/last-launch.env")"
 
   cat <<EOF
 OriMac diagnostics
@@ -286,7 +352,9 @@ Rosetta:        $rosetta
 Runtime:        $runtime
 Pinned version: $RUNTIME_VERSION
 Renderer:       DXMT $RUNTIME_DXMT_VERSION
-Game target:    $(profile_value display.targetWidth)x$(profile_value display.targetHeight), exclusive
+Detected games: $(installed_ori_summary)
+Selected game:  $GAME_NAME (Steam $ORI_APP_ID)
+Game target:    $(profile_value display.targetWidth)x$(profile_value display.targetHeight), fullscreen
 Retina/DPI:     $(profile_value display.retinaMode) / $(profile_value display.dpi)
 Sync:           ESYNC=$(profile_value environment.WINEESYNC), MSYNC=$(profile_value environment.WINEMSYNC)
 Audio:          $(profile_value audio.driver), buffer $(profile_value audio.directSoundBuffer)
@@ -294,7 +362,7 @@ Runtime wine:   $WHISKY_WINE
 Prefix:         $prefix
 Steam:          $steam
 Steam login:    $steam_login
-Ori $ORI_APP_ID:    $ori
+Selected game installed: $ori
 App support:    $APP_SUPPORT_DIR
 Logs:           $LOG_DIR
 App writable:   $app_writable
@@ -304,15 +372,9 @@ Tuning state:   $tuning
 Last launch:    $last_launch
 EOF
 
-  if [[ -f "$WHISKY_LIBRARIES/WhiskyWineVersion.plist" ]]; then
-    printf 'Runtime version: %s\n' "$(runtime_installed_version 2>/dev/null || echo unknown)"
-    printf 'DXMT version:    %s\n' "$(plist_value "$WHISKY_LIBRARIES/WhiskyWineVersion.plist" dxmtVersion || echo unknown)"
-    printf 'DXVK version:    %s\n' "$(plist_value "$WHISKY_LIBRARIES/WhiskyWineVersion.plist" dxvkVersion || echo unknown)"
-  fi
-
   local manifest_path exe_path
   manifest_path="$(ori_manifest_path 2>/dev/null || true)"
   exe_path="$(ori_executable_path 2>/dev/null || true)"
-  [[ -n "$manifest_path" ]] && printf 'Ori manifest:    %s\n' "$manifest_path"
-  [[ -n "$exe_path" ]] && printf 'Ori executable:  %s\n' "$exe_path"
+  [[ -n "$manifest_path" ]] && printf 'Game manifest:   %s\n' "$manifest_path"
+  [[ -n "$exe_path" ]] && printf 'Game executable: %s\n' "$exe_path"
 }
