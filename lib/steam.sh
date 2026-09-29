@@ -59,7 +59,11 @@ ensure_steam() {
 }
 
 ori_is_installed() {
-  [[ -f "$ORI_MANIFEST" ]] && grep -Eq "\"appid\"[[:space:]]+\"${ORI_APP_ID}\"" "$ORI_MANIFEST"
+  [[ -f "$ORI_MANIFEST" ]] || return 1
+  grep -Eq "\"appid\"[[:space:]]+\"${ORI_APP_ID}\"" "$ORI_MANIFEST" || return 1
+  local dir
+  dir="$(ori_install_dir 2>/dev/null || true)"
+  [[ -n "$dir" && -f "$dir/$ORI_EXE" ]]
 }
 
 ori_install_dir() {
@@ -74,7 +78,66 @@ steam_has_login() {
 
 launch_steam() {
   info "Opening Windows Steam..."
-  wine_program "$STEAM_EXE" -silent
+  # Do not use -silent here: first-run/login/install flows need the actual Steam UI.
+  wine_program "$STEAM_EXE"
+}
+
+wait_for_steam_login() {
+  local timeout_seconds="${1:-900}"
+  local elapsed=0
+  while [[ "$elapsed" -lt "$timeout_seconds" ]]; do
+    if steam_has_login; then
+      return 0
+    fi
+    sleep 2
+    elapsed=$((elapsed + 2))
+  done
+  return 1
+}
+
+open_ori_install_dialog() {
+  info "Opening Ori install dialog in Steam..."
+  wine_run start "steam://install/$ORI_APP_ID"
+}
+
+wait_for_ori_install() {
+  local timeout_seconds="${1:-14400}"
+  local elapsed=0
+  while [[ "$elapsed" -lt "$timeout_seconds" ]]; do
+    if ori_is_installed; then
+      return 0
+    fi
+    sleep 5
+    elapsed=$((elapsed + 5))
+  done
+  return 1
+}
+
+ensure_ori_installed_interactive() {
+  if ori_is_installed; then
+    return 0
+  fi
+
+  launch_steam
+
+  if ! steam_has_login; then
+    info "Sign in to Windows Steam. OriMac is waiting for the login to complete..."
+    if ! wait_for_steam_login 900; then
+      error "Steam login was not detected within 15 minutes."
+      return 8
+    fi
+    info "Steam login detected."
+  fi
+
+  open_ori_install_dialog
+  info "Choose the install location in Steam if asked. OriMac will wait for the download to finish."
+
+  if ! wait_for_ori_install 14400; then
+    error "Ori installation was not detected within 4 hours."
+    return 10
+  fi
+
+  info "Ori installation detected."
 }
 
 ori_process_running() {
