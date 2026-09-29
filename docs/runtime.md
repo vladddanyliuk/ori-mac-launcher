@@ -90,7 +90,7 @@ The pinned runtime values mirror the provider's published `WhiskyWineVersion.pli
 
 ## Game profile
 
-All Ori-specific choices live in `config/ori.json`, including:
+All Ori-specific choices live in `config/ori.plist`, including:
 
 - Steam App ID `1057090`;
 - expected executable `oriwotw.exe`;
