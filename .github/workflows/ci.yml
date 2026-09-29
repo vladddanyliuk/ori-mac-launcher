@@ -12,9 +12,15 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
+
+      - name: Verify launcher executable bit
+        run: test -x ./ori
+
       - name: Syntax and contract tests
-        run: ./tests/test.sh
+        run: bash ./tests/test.sh
+
       - name: Install ShellCheck
         run: brew install shellcheck
+
       - name: ShellCheck
         run: shellcheck ori lib/*.sh tests/test.sh
