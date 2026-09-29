@@ -241,8 +241,8 @@ ensure_ori_bottle() {
 
   deploy_dxmt
 
-  # Keep the prefix in Windows 10 compatibility mode.
-  wine_run reg add 'HKCU\\Software\\Wine' /v Version /d win10 /f >/dev/null 2>&1 || true
+  # Keep the prefix in Windows 10 compatibility mode without opening winecfg UI.
+  wine_run winecfg -v win10 >/dev/null 2>&1
 
   printf 'PREFIX_VERSION=%s\n' "$PREFIX_SCHEMA_VERSION" > "$STATE_DIR/prefix.env"
   info "Prefix ready: $ORI_PREFIX"
