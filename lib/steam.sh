@@ -194,6 +194,18 @@ wait_for_ori_process() {
   return 1
 }
 
+log_effective_ori_display() {
+  local game_key='HKCU\Software\Moon Studios\OriAndTheWilloftheWisps'
+  local width height fullscreen native
+
+  width="$(wine_run reg query "$game_key" /v 'Screenmanager Resolution Width_h182942802' 2>/dev/null | awk '/REG_DWORD/ {print $NF; exit}' || true)"
+  height="$(wine_run reg query "$game_key" /v 'Screenmanager Resolution Height_h2627697771' 2>/dev/null | awk '/REG_DWORD/ {print $NF; exit}' || true)"
+  fullscreen="$(wine_run reg query "$game_key" /v 'Screenmanager Fullscreen mode_h3630240806' 2>/dev/null | awk '/REG_DWORD/ {print $NF; exit}' || true)"
+  native="$(wine_run reg query "$game_key" /v 'Screenmanager Resolution Use Native_h1405027254' 2>/dev/null | awk '/REG_DWORD/ {print $NF; exit}' || true)"
+
+  info "Ori display registry after launch: width=${width:-unknown} height=${height:-unknown} fullscreen=${fullscreen:-unknown} useNative=${native:-unknown}"
+}
+
 launch_ori() {
   if ! steam_has_login; then
     printf 'LAST_LAUNCH_STATUS=steam-sign-in-required\n' > "$STATE_DIR/last-launch.env"
@@ -204,13 +216,25 @@ launch_ori() {
     return 8
   fi
 
-  info "Launching Ori and the Will of the Wisps..."
-  wine_program "$STEAM_EXE" -silent -applaunch "$ORI_APP_ID"
+  local target_width target_height
+  target_width="$(profile_value display.targetWidth)"
+  target_height="$(profile_value display.targetHeight)"
+
+  info "Launching Ori and the Will of the Wisps at ${target_width}x${target_height}..."
+  # Ori uses Unity 2018.4. Force the standalone-player mode every launch so
+  # game-side settings cannot silently fall back to the macOS logical resolution.
+  wine_program "$STEAM_EXE" -silent -applaunch "$ORI_APP_ID" \
+    -force-d3d11 \
+    -screen-width "$target_width" \
+    -screen-height "$target_height" \
+    -screen-fullscreen 1
 
   if wait_for_ori_process; then
     printf 'LAST_LAUNCH_STATUS=started\n' > "$STATE_DIR/last-launch.env"
     printf 'LAST_LAUNCH_AT=%q\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> "$STATE_DIR/last-launch.env"
     info "Ori process detected: $ORI_EXE"
+    sleep 4
+    log_effective_ori_display
     return 0
   fi
 
