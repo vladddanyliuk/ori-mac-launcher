@@ -255,14 +255,19 @@ log_effective_ori_display() {
     return 0
   fi
 
-  local game_key width height fullscreen native
+  local game_key width_key height_key fullscreen_key native_key width height fullscreen native
   game_key="$(profile_value registryKey)"
-  width="$(wine_run reg query "$game_key" /v 'Screenmanager Resolution Width_h182942802' 2>/dev/null | awk '/REG_DWORD/ {print $NF; exit}' || true)"
-  height="$(wine_run reg query "$game_key" /v 'Screenmanager Resolution Height_h2627697771' 2>/dev/null | awk '/REG_DWORD/ {print $NF; exit}' || true)"
-  fullscreen="$(wine_run reg query "$game_key" /v 'Screenmanager Fullscreen mode_h3630240806' 2>/dev/null | awk '/REG_DWORD/ {print $NF; exit}' || true)"
-  native="$(wine_run reg query "$game_key" /v 'Screenmanager Resolution Use Native_h1405027254' 2>/dev/null | awk '/REG_DWORD/ {print $NF; exit}' || true)"
+  width_key="$(profile_value screenWidthRegistryName 2>/dev/null || true)"
+  height_key="$(profile_value screenHeightRegistryName 2>/dev/null || true)"
+  fullscreen_key="$(profile_value fullscreenRegistryName 2>/dev/null || true)"
+  native_key="$(profile_value useNativeRegistryName 2>/dev/null || true)"
 
-  info "Display registry after launch: width=${width:-unknown} height=${height:-unknown} fullscreen=${fullscreen:-unknown} useNative=${native:-unknown}"
+  [[ -n "$width_key" ]] && width="$(wine_run reg query "$game_key" /v "$width_key" 2>/dev/null | awk '/REG_DWORD/ {print $NF; exit}' || true)"
+  [[ -n "$height_key" ]] && height="$(wine_run reg query "$game_key" /v "$height_key" 2>/dev/null | awk '/REG_DWORD/ {print $NF; exit}' || true)"
+  [[ -n "$fullscreen_key" ]] && fullscreen="$(wine_run reg query "$game_key" /v "$fullscreen_key" 2>/dev/null | awk '/REG_DWORD/ {print $NF; exit}' || true)"
+  [[ -n "$native_key" ]] && native="$(wine_run reg query "$game_key" /v "$native_key" 2>/dev/null | awk '/REG_DWORD/ {print $NF; exit}' || true)"
+
+  info "Display registry after launch: width=${width:-unknown} height=${height:-unknown} fullscreen=${fullscreen:-unknown} useNative=${native:-n/a}"
 }
 
 launch_ori() {
