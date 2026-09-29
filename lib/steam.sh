@@ -88,8 +88,9 @@ OriMac diagnostics
 macOS:          $macos
 Architecture:   $arch
 Rosetta:        $rosetta
-Whisky app:     $([[ -d "$WHISKY_APP" ]] && echo installed || echo missing)
 Runtime:        $runtime
+Pinned version: $RUNTIME_VERSION
+Renderer:       DXMT $RUNTIME_DXMT_VERSION
 Runtime wine:   $WHISKY_WINE
 Prefix:         $prefix
 Steam:          $steam
@@ -100,7 +101,7 @@ Disk free:      $disk
 EOF
 
   if [[ -f "$WHISKY_LIBRARIES/WhiskyWineVersion.plist" ]]; then
-    printf 'Runtime version: %s\n' "$(plist_value "$WHISKY_LIBRARIES/WhiskyWineVersion.plist" version || echo unknown)"
+    printf 'Runtime version: %s\n' "$(runtime_installed_version 2>/dev/null || echo unknown)"
     printf 'DXMT version:    %s\n' "$(plist_value "$WHISKY_LIBRARIES/WhiskyWineVersion.plist" dxmtVersion || echo unknown)"
     printf 'DXVK version:    %s\n' "$(plist_value "$WHISKY_LIBRARIES/WhiskyWineVersion.plist" dxvkVersion || echo unknown)"
   fi
