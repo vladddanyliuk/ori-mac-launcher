@@ -14,18 +14,18 @@ pass() {
   printf 'PASS: %s\n' "$*"
 }
 
-echo "[1/10] shell syntax"
+echo "[1/11] shell syntax"
 for file in "$ROOT/ori" "$ROOT"/lib/*.sh "$ROOT/tests/test.sh"; do
   bash -n "$file" || fail "syntax: $file"
 done
 pass "shell syntax"
 
-echo "[2/10] executable entry point"
+echo "[2/11] executable entry point"
 [[ -x "$ROOT/ori" ]] || fail "ori is not executable"
 grep -Fq 'main "$@"' "$ROOT/ori" || fail "ori does not dispatch main"
 pass "entry point"
 
-echo "[3/10] game profiles"
+echo "[3/11] game profiles"
 python3 - "$ROOT/config/blind.plist" "$ROOT/config/blind-de.plist" "$ROOT/config/wotw.plist" <<'PY'
 import plistlib, sys
 expected = [
@@ -70,12 +70,12 @@ for path, exp in zip(sys.argv[1:], expected):
 PY
 pass "game profiles"
 
-echo "[4/10] runtime pin"
+echo "[4/11] runtime pin"
 grep -Fq 'RUNTIME_VERSION="3.1.1"' "$ROOT/lib/whisky.sh" || fail "runtime is not pinned"
 grep -Fq 'RUNTIME_SHA256="01f3a1b43b98065fe20c529c1023b61dd79a6d2ad93bba6040865f646481ccf3"' "$ROOT/lib/whisky.sh" || fail "runtime checksum is not pinned"
 pass "runtime pin"
 
-echo "[5/10] multi-game detection contract"
+echo "[5/11] multi-game detection contract"
 grep -Fq 'manifest_for_appid 261570' "$ROOT/lib/steam.sh" || fail "Blind Forest detection missing"
 grep -Fq 'manifest_for_appid 387290' "$ROOT/lib/steam.sh" || fail "Blind Forest DE detection missing"
 grep -Fq 'manifest_for_appid 1057090' "$ROOT/lib/steam.sh" || fail "Will of the Wisps detection missing"
@@ -83,15 +83,15 @@ grep -Fq 'load_game_profile "blind"' "$ROOT/lib/steam.sh" || fail "Blind Forest 
 grep -Fq 'load_game_profile "wotw"' "$ROOT/lib/steam.sh" || fail "WotW profile selection missing"
 pass "multi-game detection"
 
-echo "[6/10] forced Unity display arguments"
+echo "[6/11] forced Unity display arguments"
 grep -Fq -- '-force-d3d11' "$ROOT/lib/steam.sh" || fail "D3D11 force missing"
 grep -Fq -- '-screen-width' "$ROOT/lib/steam.sh" || fail "screen width arg missing"
 grep -Fq -- '-screen-height' "$ROOT/lib/steam.sh" || fail "screen height arg missing"
 grep -Fq -- '-screen-fullscreen' "$ROOT/lib/steam.sh" || fail "fullscreen arg missing"
 pass "Unity display args"
 
-echo "[7/10] tuning contract"
-grep -Fq 'TUNING_SCHEMA_VERSION="9"' "$ROOT/lib/whisky.sh" || fail "tuning schema not bumped"
+echo "[7/11] tuning contract"
+grep -Fq 'TUNING_SCHEMA_VERSION="10"' "$ROOT/lib/whisky.sh" || fail "tuning schema not bumped"
 grep -Fq 'sync_program_dll_overrides()' "$ROOT/lib/whisky.sh" || fail "per-program DLL override sync missing"
 grep -Fq 'AppDefaults' "$ROOT/lib/whisky.sh" || fail "Wine AppDefaults override scope missing"
 if grep -Fq 'export WINEDLLOVERRIDES' "$ROOT/lib/whisky.sh"; then
@@ -108,19 +108,24 @@ grep -Fq "screenWidthRegistryName" "$ROOT/lib/whisky.sh" || fail "profile width 
 grep -Fq "fullscreenRegistryName" "$ROOT/lib/whisky.sh" || fail "profile fullscreen registry key handling missing"
 pass "tuning contract"
 
-echo "[8/10] path safety"
+echo "[8/11] path safety"
 grep -Fq 'rm -rf "$ORI_PREFIX"' "$ROOT/lib/whisky.sh" || fail "prefix reset is not scoped"
 if grep -REn 'rm[[:space:]]+-rf[[:space:]]+(")?(~|\$HOME)(/|["[:space:]]|$)' "$ROOT/lib" "$ROOT/ori"; then
   fail "broad home-directory deletion found"
 fi
 pass "path safety"
 
-echo "[9/10] one-command README"
+echo "[9/11] one-command README"
 grep -Fq './ori' "$ROOT/README.md" || fail "README ./ori missing"
 grep -Fq 'auto-detect' "$ROOT/README.md" || fail "README auto-detect missing"
 pass "README"
 
-echo "[10/10] secret/logging safety"
+echo "[10/11] Steam CEF GPU isolation"
+grep -Fq -- '-cef-disable-gpu' "$ROOT/lib/steam.sh" || fail "Steam CEF GPU disable flag missing"
+grep -Fq -- '-cef-disable-gpu-compositing' "$ROOT/lib/steam.sh" || fail "Steam CEF compositing disable flag missing"
+pass "Steam CEF GPU isolation"
+
+echo "[11/11] secret/logging safety"
 if grep -REni '(steamloginsecure|refresh[_-]?token|access[_-]?token|password|passwd).*(echo|printf)' "$ROOT/lib" "$ROOT/ori"; then
   fail "possible secret logging"
 fi
