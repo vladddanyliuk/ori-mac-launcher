@@ -1,10 +1,25 @@
 {
   "name": "Ori and the Will of the Wisps",
   "steamAppId": 1057090,
+  "executable": "oriwotw.exe",
   "windowsVersion": "win10",
   "runtimeProvider": "frankea/WhiskyWine",
+  "runtimeVersion": "3.1.1",
   "preferredRenderer": "DXMT",
+  "preferredRendererVersion": "0.80",
   "fallbackRenderer": "DXVK",
+  "fallbackRendererVersion": "1.10.3",
+  "environment": {
+    "WINEDEBUG": "-all",
+    "WINEESYNC": "1",
+    "WINEMSYNC": "1"
+  },
+  "dllOverrides": "dxgi=n,b;d3d10core=n,b;d3d11=n,b;winemetal=b;d3d12=",
   "steamLaunchMode": "applaunch",
-  "launchArguments": []
+  "launchArguments": [],
+  "knownWorkarounds": [
+    "Use DXMT as the default DirectX 11 backend.",
+    "Keep Ori in the dedicated prefix; do not reuse the native macOS Steam installation.",
+    "Use windowed or borderless mode if a runtime-specific fullscreen focus bug appears."
+  ]
 }
