@@ -317,6 +317,67 @@ installed_ori_summary() {
   [[ -n "$out" ]] && printf '%s\n' "$out" || printf '%s\n' "none"
 }
 
+game_log_path() {
+  local install_dir users_dir
+  install_dir="$(ori_install_dir 2>/dev/null || true)"
+  users_dir="$ORI_PREFIX/drive_c/users"
+
+  /usr/bin/python3 - "$install_dir" "$users_dir" <<'PY'
+import os
+import sys
+
+roots=[p for p in sys.argv[1:] if p and os.path.isdir(p)]
+names={"output_log.txt","player.log"}
+matches=[]
+
+for root in roots:
+    for base, dirs, files in os.walk(root):
+        # Avoid crawling Steam browser/cache trees that can be huge and irrelevant.
+        dirs[:] = [d for d in dirs if d.lower() not in {
+            "htmlcache","shadercache","cef_cache","cache","logs"
+        }]
+        for name in files:
+            if name.lower() in names:
+                path=os.path.join(base,name)
+                try:
+                    matches.append((os.path.getmtime(path), path))
+                except OSError:
+                    pass
+
+if matches:
+    matches.sort(reverse=True)
+    print(matches[0][1])
+PY
+}
+
+show_game_logs() {
+  local requested="${1:-}"
+  if [[ -n "$requested" ]]; then
+    select_game_for_run "$requested" || return $?
+  else
+    select_installed_game 1 || {
+      error "No installed Ori game was detected."
+      return 1
+    }
+  fi
+
+  local log_path
+  log_path="$(game_log_path 2>/dev/null || true)"
+
+  if [[ -z "$log_path" || ! -f "$log_path" ]]; then
+    error "No Unity game log was found for $GAME_NAME."
+    error "Expected an output_log.txt or Player.log under the game folder or Wine user AppData."
+    error "Launcher log is still available at: $CURRENT_LOG"
+    return 1
+  fi
+
+  info "Game log: $log_path"
+  printf '\n===== last 250 lines: %s =====\n' "$GAME_NAME"
+  tail -n 250 "$log_path"
+  printf '\n===== end game log =====\n'
+}
+
+
 doctor() {
   init_paths
 
