@@ -91,7 +91,12 @@ grep -Fq -- '-screen-fullscreen' "$ROOT/lib/steam.sh" || fail "fullscreen arg mi
 pass "Unity display args"
 
 echo "[7/10] tuning contract"
-grep -Fq 'TUNING_SCHEMA_VERSION="8"' "$ROOT/lib/whisky.sh" || fail "tuning schema not bumped"
+grep -Fq 'TUNING_SCHEMA_VERSION="9"' "$ROOT/lib/whisky.sh" || fail "tuning schema not bumped"
+grep -Fq 'sync_program_dll_overrides()' "$ROOT/lib/whisky.sh" || fail "per-program DLL override sync missing"
+grep -Fq 'AppDefaults' "$ROOT/lib/whisky.sh" || fail "Wine AppDefaults override scope missing"
+if grep -Fq 'export WINEDLLOVERRIDES' "$ROOT/lib/whisky.sh"; then
+  fail "WINEDLLOVERRIDES must not leak into Steam/helper environment"
+fi
 grep -Fq 'deploy_dxvk()' "$ROOT/lib/whisky.sh" || fail "DXVK deployment missing"
 grep -Fq 'HIGHDPIAWARE' "$ROOT/lib/whisky.sh" || fail "high-DPI awareness override missing"
 grep -Fq "VideoMemorySize" "$ROOT/lib/whisky.sh" || fail "VRAM reporting override missing"
