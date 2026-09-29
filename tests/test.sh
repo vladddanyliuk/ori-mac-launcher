@@ -14,18 +14,18 @@ pass() {
   printf 'PASS: %s\n' "$*"
 }
 
-echo "[1/10] shell syntax"
+echo "[1/12] shell syntax"
 for file in "$ROOT/ori" "$ROOT"/lib/*.sh "$ROOT/tests/test.sh"; do
   bash -n "$file" || fail "syntax: $file"
 done
 pass "shell syntax"
 
-echo "[2/10] executable entry point"
+echo "[2/12] executable entry point"
 [[ -x "$ROOT/ori" ]] || fail "ori is not executable"
 grep -Fq 'main "$@"' "$ROOT/ori" || fail "ori does not dispatch main"
 pass "entry point"
 
-echo "[3/10] profile JSON"
+echo "[3/12] profile JSON"
 python3 - "$ROOT/config/ori.json" <<'PY'
 import json, sys
 with open(sys.argv[1], encoding="utf-8") as f:
@@ -39,20 +39,20 @@ assert p["dllOverrides"] == "dxgi=n,b;d3d10core=n,b;d3d11=n,b;winemetal=b;d3d12=
 PY
 pass "profile"
 
-echo "[4/10] pinned runtime integrity contract"
+echo "[4/12] pinned runtime integrity contract"
 grep -Fq 'RUNTIME_VERSION="3.1.1"' "$ROOT/lib/whisky.sh" || fail "runtime is not pinned"
 grep -Fq 'RUNTIME_SHA256="01f3a1b43b98065fe20c529c1023b61dd79a6d2ad93bba6040865f646481ccf3"' "$ROOT/lib/whisky.sh" || fail "runtime checksum is not pinned"
 grep -Fq 'sha256_file "$archive"' "$ROOT/lib/whisky.sh" || fail "runtime archive is not hashed"
 pass "runtime pin"
 
-echo "[5/10] path safety"
+echo "[5/12] path safety"
 grep -Fq 'rm -rf "$ORI_PREFIX"' "$ROOT/lib/whisky.sh" || fail "prefix reset is not explicitly scoped"
 if grep -REn 'rm[[:space:]]+-rf[[:space:]]+(")?(~|\$HOME)(/|["[:space:]]|$)' "$ROOT/lib" "$ROOT/ori"; then
   fail "broad home-directory deletion found"
 fi
 pass "path safety"
 
-echo "[6/10] Steam manifest parsing fixture"
+echo "[6/12] Steam manifest parsing fixture"
 fixture="$TMP/appmanifest_1057090.acf"
 cat > "$fixture" <<'EOF'
 "AppState"
@@ -67,7 +67,7 @@ install_dir="$(awk -F'"' '/"installdir"/ {print $4; exit}' "$fixture")"
 [[ "$install_dir" == "Ori and the Will of the Wisps" ]] || fail "install-dir parser"
 pass "Steam manifest"
 
-echo "[7/10] one-command README contract"
+echo "[7/12] one-command README contract"
 grep -Fq 'git clone https://github.com/vladddanyliuk/ori-mac-launcher.git' "$ROOT/README.md" || fail "README clone command missing"
 grep -Fq './ori' "$ROOT/README.md" || fail "README ./ori command missing"
 if grep -Eq 'brew install|open -a Whisky|chmod \+x' "$ROOT/README.md"; then
@@ -75,7 +75,7 @@ if grep -Eq 'brew install|open -a Whisky|chmod \+x' "$ROOT/README.md"; then
 fi
 pass "one-command README"
 
-echo "[8/10] bootstrap idempotence decisions"
+echo "[8/12] bootstrap idempotence decisions"
 (
   APP_SUPPORT_DIR="$TMP/App Support/OriMac"
   STATE_DIR="$APP_SUPPORT_DIR/state"
@@ -103,7 +103,7 @@ echo "[8/10] bootstrap idempotence decisions"
 ) || fail "runtime idempotence"
 pass "runtime idempotence"
 
-echo "[9/10] prefix schema state"
+echo "[9/12] prefix schema state"
 (
   APP_SUPPORT_DIR="$TMP/Prefix Test/OriMac"
   STATE_DIR="$APP_SUPPORT_DIR/state"
@@ -124,7 +124,52 @@ echo "[9/10] prefix schema state"
 ) || fail "prefix schema"
 pass "prefix schema"
 
-echo "[10/10] secret/logging safety"
+echo "[10/12] path construction with spaces"
+(
+  APP_SUPPORT_DIR="$TMP/Path With Spaces/OriMac"
+  STATE_DIR="$APP_SUPPORT_DIR/state"
+  DOWNLOAD_DIR="$APP_SUPPORT_DIR/downloads"
+  ROOT_DIR="$ROOT"
+  info() { :; }
+  warn() { :; }
+  error() { :; }
+  profile_value() { printf '%s\n' "-all"; }
+
+  # shellcheck source=../lib/whisky.sh
+  source "$ROOT/lib/whisky.sh"
+  [[ "$ORI_PREFIX" == "$TMP/Path With Spaces/OriMac/prefix" ]] || fail "prefix path lost spaces"
+  [[ "$WHISKY_WINE" == "$TMP/Path With Spaces/OriMac/runtime/Libraries/Wine/bin/wine64" ]] || fail "runtime path lost spaces"
+) || fail "path construction"
+pass "path construction"
+
+echo "[11/12] Steam installer fixture validation"
+(
+  APP_SUPPORT_DIR="$TMP/Steam Test/OriMac"
+  STATE_DIR="$APP_SUPPORT_DIR/state"
+  DOWNLOAD_DIR="$APP_SUPPORT_DIR/downloads"
+  ORI_PREFIX="$APP_SUPPORT_DIR/prefix"
+  ORI_APP_ID="1057090"
+  ORI_EXE="oriwotw.exe"
+  mkdir -p "$DOWNLOAD_DIR"
+
+  info() { :; }
+  warn() { :; }
+  error() { :; }
+
+  # shellcheck source=../lib/steam.sh
+  source "$ROOT/lib/steam.sh"
+
+  printf 'MZfixture' > "$STEAM_INSTALLER"
+  steam_installer_is_sane || fail "MZ installer fixture rejected"
+
+  printf '<html>not an exe</html>' > "$STEAM_INSTALLER"
+  if steam_installer_is_sane; then
+    fail "non-PE installer fixture accepted"
+  fi
+) || fail "Steam installer validation"
+pass "Steam installer validation"
+
+echo "[12/12] secret/logging safety"
 if grep -REni '(steamloginsecure|refresh[_-]?token|access[_-]?token|password|passwd).*(echo|printf)' "$ROOT/lib" "$ROOT/ori"; then
   fail "possible secret logging"
 fi
