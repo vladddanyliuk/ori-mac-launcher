@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$ROOT_DIR/lib/common.sh"
+source "$ROOT_DIR/lib/platform.sh"
+source "$ROOT_DIR/lib/whisky.sh"
+source "$ROOT_DIR/lib/steam.sh"
+
+usage() {
+  cat <<'TXT'
+Ori Mac Launcher
+
+Usage:
+  ./ori              Bootstrap if needed, then launch Ori
+  ./ori --steam      Open Windows Steam in the Ori bottle
+  ./ori --doctor     Print diagnostics
+  ./ori --logs       Reveal log directory in Finder
+  ./ori --reset      Reset the Ori bottle after confirmation
+  ./ori --help       Show this help
+TXT
+}
+
+main() {
+  init_paths
+  rotate_logs
+  exec > >(tee -a "$CURRENT_LOG") 2>&1
+  trap 'on_error $? $LINENO' ERR
+
+  local command="${1:-run}"
+  case "$command" in
+    run)
+      platform_check
+      ensure_runtime
+      ensure_ori_bottle
+      ensure_steam
+      if ori_is_installed; then
+        launch_ori
+      else
+        warn "Ori and the Will of the Wisps is not installed yet. Opening Windows Steam."
+        info "Install Ori there once; after that, ./ori launches the game directly."
+        launch_steam
+      fi
+      ;;
+    --steam)
+      platform_check
+      ensure_runtime
+      ensure_ori_bottle
+      ensure_steam
+      launch_steam
+      ;;
+    --doctor)
+      doctor
+      ;;
+    --logs)
+      mkdir -p "$LOG_DIR"
+      open "$LOG_DIR"
+      ;;
+    --reset)
+      reset_bottle
+      ;;
+    -h|--help)
+      usage
+      ;;
+    *)
+      error "Unknown option: $command"
+      usage
+      exit 64
+      ;;
+  esac
+}
+
+main "$@"
