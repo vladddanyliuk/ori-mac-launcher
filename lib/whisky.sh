@@ -117,7 +117,7 @@ wine_env() {
   export WINEPREFIX WINEDEBUG WINEESYNC WINEMSYNC CX_ROOT PATH
 
   if [[ -d "$WHISKY_LIBRARIES/DXMT" ]]; then
-    WINEDLLOVERRIDES="$(profile_value dllOverrides);${WINEDLLOVERRIDES:-}"
+    WINEDLLOVERRIDES="$(profile_value dllOverrides)"
     export WINEDLLOVERRIDES
   fi
 }
