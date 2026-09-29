@@ -8,14 +8,29 @@ STEAM_APPS="$STEAM_DIR/steamapps"
 ORI_MANIFEST="$STEAM_APPS/appmanifest_${ORI_APP_ID}.acf"
 STEAM_LOGIN_USERS="$STEAM_DIR/config/loginusers.vdf"
 
+steam_installer_is_sane() {
+  [[ -s "$STEAM_INSTALLER" ]] || return 1
+  local magic
+  magic="$(LC_ALL=C dd if="$STEAM_INSTALLER" bs=1 count=2 2>/dev/null || true)"
+  [[ "$magic" == "MZ" ]]
+}
+
 download_steam() {
-  if [[ -s "$STEAM_INSTALLER" ]]; then
+  if steam_installer_is_sane; then
     return 0
   fi
 
+  rm -f "$STEAM_INSTALLER" "$STEAM_INSTALLER.tmp"
   info "Downloading official Windows Steam installer..."
-  curl --fail --location --retry 3 --progress-bar     "$STEAM_INSTALLER_URL" -o "$STEAM_INSTALLER.tmp"
+  curl --fail --location --retry 3 --progress-bar \
+    "$STEAM_INSTALLER_URL" -o "$STEAM_INSTALLER.tmp"
   mv "$STEAM_INSTALLER.tmp" "$STEAM_INSTALLER"
+
+  if ! steam_installer_is_sane; then
+    rm -f "$STEAM_INSTALLER"
+    error "Steam download did not look like a valid Windows executable."
+    exit 6
+  fi
 }
 
 steam_is_installed() {
