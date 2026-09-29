@@ -61,7 +61,7 @@ ensure_steam() {
 }
 
 ori_is_installed() {
-  [[ -f "$ORI_MANIFEST" ]] && grep -Eq '"appid"[[:space:]]+"'${ORI_APP_ID}'"' "$ORI_MANIFEST"
+  [[ -f "$ORI_MANIFEST" ]] && grep -Eq "\"appid\"[[:space:]]+\"${ORI_APP_ID}\"" "$ORI_MANIFEST"
 }
 
 ori_install_dir() {
