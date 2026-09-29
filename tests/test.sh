@@ -41,7 +41,13 @@ for path, exp in zip(sys.argv[1:], expected):
     assert p["steamAppId"] == appid
     assert p["executable"] == exe
     assert p["runtimeVersion"] == "3.1.1"
-    assert p["preferredRenderer"] == "DXMT"
+    if p["slug"] in ("blind", "blind-de"):
+        assert p["preferredRenderer"] == "DXVK"
+        assert p["preferredRendererVersion"] == "1.10.3"
+        assert p["highDpiAware"] == 1
+    else:
+        assert p["preferredRenderer"] == "DXMT"
+        assert p["preferredRendererVersion"] == "0.80"
     assert p["display"]["targetWidth"] == 1920
     assert p["display"]["targetHeight"] == 1080
     if p["slug"] in ("blind", "blind-de"):
@@ -85,7 +91,9 @@ grep -Fq -- '-screen-fullscreen' "$ROOT/lib/steam.sh" || fail "fullscreen arg mi
 pass "Unity display args"
 
 echo "[7/10] tuning contract"
-grep -Fq 'TUNING_SCHEMA_VERSION="7"' "$ROOT/lib/whisky.sh" || fail "tuning schema not bumped"
+grep -Fq 'TUNING_SCHEMA_VERSION="8"' "$ROOT/lib/whisky.sh" || fail "tuning schema not bumped"
+grep -Fq 'deploy_dxvk()' "$ROOT/lib/whisky.sh" || fail "DXVK deployment missing"
+grep -Fq 'HIGHDPIAWARE' "$ROOT/lib/whisky.sh" || fail "high-DPI awareness override missing"
 grep -Fq "VideoMemorySize" "$ROOT/lib/whisky.sh" || fail "VRAM reporting override missing"
 grep -Fq "MONO_THREADS_SUSPEND" "$ROOT/lib/whisky.sh" || fail "Unity performance environment missing"
 grep -Fq "HelBuflen" "$ROOT/lib/whisky.sh" || fail "audio buffer tuning missing"
