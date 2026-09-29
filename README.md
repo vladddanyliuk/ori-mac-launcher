@@ -1,6 +1,6 @@
 # Ori Mac Launcher
 
-A game-specific compatibility launcher for **Ori and the Will of the Wisps** on Apple Silicon macOS.
+A one-command Apple Silicon macOS launcher for the Windows versions of the Ori games.
 
 ## Quick start
 
@@ -10,67 +10,55 @@ cd ori-mac-launcher
 ./ori
 ```
 
-**That is the entire setup/launch interface.** The same command bootstraps the runtime on a fresh Mac and launches Ori on later runs.
+`./ori` auto-detects an installed Ori title in the private Windows Steam prefix and launches it with the matching game profile.
 
-OriMac performs these steps automatically:
-1. checks Apple Silicon/macOS/Rosetta;
-2. downloads the pinned WhiskyWine `3.1.1` runtime directly from its maintained upstream release;
-3. verifies the pinned SHA-256 before extracting anything;
-4. creates a private Wine prefix and deploys DXMT `0.80` for DirectX 11 → Metal;
-5. installs the Windows Steam client;
-6. opens Steam for the unavoidable account sign-in/game purchase/install UI;
-7. detects the Mac display for diagnostics, but runs Ori with an explicit 2560×1440 game render target instead of hidden Retina 2× rendering;
-8. applies Ori exclusive fullscreen, CoreAudio stable buffering and ESYNC-only frame scheduling;
-9. once App ID `1057090` is installed, launches Ori directly on subsequent `./ori` runs.
+Detection order:
+1. Ori and the Blind Forest — Steam 261570
+2. Ori and the Blind Forest: Definitive Edition — Steam 387290
+3. Ori and the Will of the Wisps — Steam 1057090
 
-There is no first-run Whisky GUI/bottle setup dependency.
+You can also choose explicitly:
+
+```bash
+./ori blind
+./ori blind-de
+./ori wotw
+```
+
+## What the launcher handles
+
+- Apple Silicon/macOS/Rosetta checks
+- pinned WhiskyWine 3.1.1 runtime
+- DXMT 0.80 Direct3D 11 → Metal path
+- isolated Wine prefix
+- Windows Steam bootstrap/login
+- installed-game auto-detection across Steam library paths
+- per-game executable/App ID profiles
+- forced Unity 1920×1080 fullscreen baseline
+- Retina scaling disabled for the gameplay path
+- ESYNC-only scheduling
+- CoreAudio + stability-oriented DirectSound buffer
+- diagnostics, logs and safe reset
 
 ## Commands
 
 ```text
-./ori            bootstrap / launch Ori
-./ori --steam    open Windows Steam
-./ori --doctor   diagnostics
-./ori --self-test validate Wine + DXMT without Steam login
-./ori --logs     reveal logs
-./ori --reset    delete only OriMac's private prefix after confirmation
+./ori              auto-detect installed Ori and launch
+./ori blind        launch Ori and the Blind Forest
+./ori blind-de     launch Definitive Edition
+./ori wotw         launch Will of the Wisps
+./ori --steam      open Windows Steam
+./ori --doctor     diagnostics
+./ori --self-test  validate Wine + DXMT
+./ori --logs       reveal logs
+./ori --reset      delete only OriMac's private prefix after confirmation
 ```
 
 ## Data locations
 
 ```text
 ~/Library/Application Support/OriMac/
-├── prefix/
-├── downloads/
-├── state/
-└── config/
-
 ~/Library/Logs/OriMac/
 ```
 
 OriMac never edits the native macOS Steam installation.
-
-The pinned runtime is private to OriMac:
-
-```text
-~/Library/Application Support/OriMac/runtime/Libraries/
-```
-
-## Requirements
-
-- Apple Silicon Mac
-- macOS Sequoia 15 or newer
-- Internet connection
-- Steam account that owns Ori and the Will of the Wisps
-
-Rosetta is installed by macOS when required. No Homebrew or Whisky GUI is required. OriMac downloads the pinned runtime archive directly and keeps it inside its own Application Support directory.
-
-For the current Apple-silicon laptop profile, OriMac disables Wine Retina backing-pixel doubling and uses a fixed 2560×1440 game target in exclusive fullscreen. This avoids the misleading low logical resolution + hidden 2× render cost that can make the game look scaled while running much heavier than the menu value suggests. Wine uses ESYNC without a conflicting MSYNC flag, and audio is pinned to CoreAudio with a stability-oriented DirectSound buffer. These settings are re-applied at launch because Unity may rewrite its Screenmanager registry values.
-
-## Development
-
-```bash
-./tests/test.sh
-```
-
-The repository includes CI for shell syntax, ShellCheck, state-machine decisions, manifest parsing and safety invariants. Real gameplay validation is tracked separately because CI cannot interactively sign into Steam or play the game.
