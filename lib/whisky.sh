@@ -12,7 +12,7 @@ RUNTIME_SHA256="01f3a1b43b98065fe20c529c1023b61dd79a6d2ad93bba6040865f646481ccf3
 RUNTIME_DXMT_VERSION="0.80"
 RUNTIME_DXVK_VERSION="1.10.3"
 PREFIX_SCHEMA_VERSION="1"
-TUNING_SCHEMA_VERSION="8"
+TUNING_SCHEMA_VERSION="9"
 
 ORI_RUNTIME_DIR="$APP_SUPPORT_DIR/runtime"
 WHISKY_LIBRARIES="$ORI_RUNTIME_DIR/Libraries"
@@ -150,10 +150,10 @@ wine_env() {
   export WINE_DISABLE_NTDLL_THREAD_REGS WINEPRELOADRESERVE
   export CX_ROOT PATH
 
-  if [[ -d "$WHISKY_LIBRARIES/DXMT" ]]; then
-    WINEDLLOVERRIDES="$(profile_value dllOverrides)"
-    export WINEDLLOVERRIDES
-  fi
+  # Deliberately keep DLL load-order overrides out of the process
+  # environment. Steam spawns Chromium helpers, and WINEDLLOVERRIDES would be
+  # inherited by all of them. Per-program AppDefaults are synced separately.
+  unset WINEDLLOVERRIDES
 }
 
 wine_run() {
@@ -290,6 +290,33 @@ deploy_dxvk() {
   fi
 }
 
+clear_dll_override_scope() {
+  local exe="$1"
+  wine_run reg delete "HKCU\\Software\\Wine\\AppDefaults\\$exe\\DllOverrides" /f >/dev/null 2>&1 || true
+}
+
+sync_program_dll_overrides() {
+  local game_key="HKCU\\Software\\Wine\\AppDefaults\\$ORI_EXE\\DllOverrides"
+  local clause name mode
+
+  # The bottle itself has no graphics override. This keeps Steam and all of its
+  # helper processes on Wine's default/builtin graphics stack.
+  wine_run reg delete 'HKCU\\Software\\Wine\\DllOverrides' /f >/dev/null 2>&1 || true
+
+  # Prune stale program scopes from earlier launcher revisions.
+  clear_dll_override_scope "steam.exe"
+  clear_dll_override_scope "steamwebhelper.exe"
+  clear_dll_override_scope "$ORI_EXE"
+
+  IFS=';' read -r -a clauses <<< "$(profile_value dllOverrides)"
+  for clause in "${clauses[@]}"; do
+    name="${clause%%=*}"
+    mode="${clause#*=}"
+    [[ -n "$name" ]] || continue
+    wine_run reg add "$game_key" /v "$name" /t REG_SZ /d "$mode" /f >/dev/null
+  done
+}
+
 apply_graphics_backend() {
   local backend current=""
   backend="$(profile_value preferredRenderer)"
@@ -419,6 +446,7 @@ apply_game_tuning() {
 
   # Reapply on every launch because Unity may rewrite its Screenmanager keys.
   apply_graphics_backend
+  sync_program_dll_overrides
   apply_display_tuning
   apply_audio_tuning
 
