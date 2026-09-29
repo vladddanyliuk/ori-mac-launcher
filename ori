@@ -40,13 +40,11 @@ main() {
       ensure_runtime
       ensure_ori_bottle
       ensure_steam
-      if ori_is_installed; then
-        launch_ori || exit $?
-      else
-        warn "Ori and the Will of the Wisps is not installed yet. Opening Windows Steam."
-        info "Install Ori there once; after that, ./ori launches the game directly."
-        launch_steam
+      if ! ori_is_installed; then
+        warn "Ori and the Will of the Wisps is not installed yet."
+        ensure_ori_installed_interactive || exit $?
       fi
+      launch_ori || exit $?
       ;;
     --steam)
       platform_check
