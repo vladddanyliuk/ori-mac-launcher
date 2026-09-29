@@ -23,6 +23,10 @@ platform_check() {
   if ! /usr/bin/pgrep oahd >/dev/null 2>&1 && ! /usr/bin/arch -x86_64 /usr/bin/true >/dev/null 2>&1; then
     warn "Rosetta 2 is required by the current runtime."
     info "macOS will ask for administrator approval to install Rosetta."
-    /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+    if [[ "$EUID" -eq 0 ]]; then
+      /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+    else
+      sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+    fi
   fi
 }
