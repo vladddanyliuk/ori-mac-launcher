@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>name</key><string>Ori and the Will of the Wisps</string>
+  <key>slug</key><string>wotw</string>
+  <key>screenmanagerRegistry</key><integer>1</integer>
+  <key>registryKey</key><string>HKCU\Software\Moon Studios\OriAndTheWilloftheWisps</string>
+  <key>steamAppId</key><integer>1057090</integer>
+  <key>executable</key><string>oriwotw.exe</string>
+  <key>windowsVersion</key><string>win10</string>
+  <key>runtimeProvider</key><string>frankea/WhiskyWine</string>
+  <key>runtimeVersion</key><string>3.1.1</string>
+  <key>preferredRenderer</key><string>DXMT</string>
+  <key>preferredRendererVersion</key><string>0.80</string>
+  <key>fallbackRenderer</key><string>DXVK</string>
+  <key>fallbackRendererVersion</key><string>1.10.3</string>
+
+  <key>display</key>
+  <dict>
+    <key>retinaMode</key><string>n</string>
+    <key>dpi</key><integer>96</integer>
+    <key>useNativeResolution</key><integer>0</integer>
+    <key>fullscreenMode</key><integer>0</integer>
+    <key>targetWidth</key><integer>1920</integer>
+    <key>targetHeight</key><integer>1080</integer>
+  </dict>
+
+  <key>audio</key>
+  <dict>
+    <key>driver</key><string>coreaudio</string>
+    <key>directSoundBuffer</key><integer>131072</integer>
+  </dict>
+
+  <key>environment</key>
+  <dict>
+    <key>WINEDEBUG</key><string>-all</string>
+    <key>WINEESYNC</key><string>1</string>
+    <key>WINEMSYNC</key><string>0</string>
+    <key>LC_ALL</key><string>en_US.UTF-8</string>
+    <key>LANG</key><string>en_US.UTF-8</string>
+    <key>LC_TIME</key><string>C</string>
+    <key>LC_NUMERIC</key><string>C</string>
+    <key>CEF_DISABLE_SANDBOX</key><string>1</string>
+    <key>STEAM_DISABLE_CEF_SANDBOX</key><string>1</string>
+    <key>STEAM_RUNTIME</key><string>0</string>
+    <key>WINHTTP_CONNECT_TIMEOUT</key><string>90000</string>
+    <key>WINHTTP_RECEIVE_TIMEOUT</key><string>180000</string>
+    <key>WINE_FORCE_HTTP11</key><string>1</string>
+    <key>WINE_MAX_CONNECTIONS_PER_SERVER</key><string>10</string>
+    <key>MVK_CONFIG_LOG_LEVEL</key><string>1</string>
+    <key>D3DM_VALIDATION</key><string>0</string>
+    <key>MTL_DEBUG_LAYER</key><string>0</string>
+    <key>MTL_ENABLE_METAL_EVENTS</key><string>0</string>
+  </dict>
+
+  <key>dllOverrides</key>
+  <string>dxgi=n,b;d3d10core=n,b;d3d11=n,b;winemetal=b;d3d12=</string>
+  <key>steamLaunchMode</key><string>applaunch</string>
+  <key>launchArguments</key><array/>
+
+  <key>knownWorkarounds</key>
+  <array>
+    <string>Disable Wine RetinaMode for Ori to avoid hidden 2x backing-pixel rendering overhead; force 1920x1080 through Unity command-line arguments and registry.</string>
+    <string>Use Ori exclusive fullscreen with Use Native disabled and an explicit 1920x1080 render target as the stable Apple-silicon baseline.</string>
+    <string>Force CoreAudio with the stable 131072-byte DirectSound buffer to reduce crackling/stutter; reset cached Wine audio devices when tuning changes; use ESYNC without conflicting MSYNC.</string>
+    <string>Use DXMT as the default DirectX 11 backend; DXMT v0.73 fixed Ori's historical missing-character rendering bug.</string>
+    <string>Apply Steam Chromium locale and sandbox compatibility environment inherited from maintained Whisky launcher presets.</string>
+    <string>Keep Ori in the dedicated prefix; do not reuse the native macOS Steam installation.</string>
+  </array>
+</dict>
+</plist>
