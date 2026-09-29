@@ -26,10 +26,10 @@ grep -Fq 'main "$@"' "$ROOT/ori" || fail "ori does not dispatch main"
 pass "entry point"
 
 echo "[3/12] profile JSON"
-python3 - "$ROOT/config/ori.json" <<'PY'
-import json, sys
-with open(sys.argv[1], encoding="utf-8") as f:
-    p = json.load(f)
+python3 - "$ROOT/config/ori.plist" <<'PY'
+import plistlib, sys
+with open(sys.argv[1], "rb") as f:
+    p = plistlib.load(f)
 assert p["steamAppId"] == 1057090
 assert p["executable"] == "oriwotw.exe"
 assert p["preferredRenderer"] == "DXMT"
