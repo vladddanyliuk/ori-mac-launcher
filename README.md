@@ -49,6 +49,8 @@ You can also choose explicitly:
 ./ori wotw         launch Will of the Wisps
 ./ori --steam      open Windows Steam
 ./ori --doctor     diagnostics
+./ori --game-logs [blind|blind-de|wotw]
+                   print newest Unity output_log.txt / Player.log
 ./ori --self-test  validate Wine + DXMT
 ./ori --logs       reveal logs
 ./ori --reset      delete only OriMac's private prefix after confirmation
