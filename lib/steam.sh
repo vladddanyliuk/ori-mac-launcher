@@ -5,7 +5,8 @@ STEAM_INSTALLER="$DOWNLOAD_DIR/SteamSetup.exe"
 STEAM_DIR="$ORI_PREFIX/drive_c/Program Files (x86)/Steam"
 STEAM_EXE="$STEAM_DIR/Steam.exe"
 STEAM_APPS="$STEAM_DIR/steamapps"
-ORI_MANIFEST="$STEAM_APPS/appmanifest_1057090.acf"
+ORI_MANIFEST="$STEAM_APPS/appmanifest_${ORI_APP_ID}.acf"
+STEAM_LOGIN_USERS="$STEAM_DIR/config/loginusers.vdf"
 
 download_steam() {
   if [[ -s "$STEAM_INSTALLER" ]]; then
@@ -45,7 +46,7 @@ ensure_steam() {
 }
 
 ori_is_installed() {
-  [[ -f "$ORI_MANIFEST" ]] && grep -Eq '"appid"[[:space:]]+"1057090"' "$ORI_MANIFEST"
+  [[ -f "$ORI_MANIFEST" ]] && grep -Eq '"appid"[[:space:]]+"'${ORI_APP_ID}'"' "$ORI_MANIFEST"
 }
 
 ori_install_dir() {
@@ -54,25 +55,64 @@ ori_install_dir() {
   [[ -n "$install_dir" ]] && printf '%s\n' "$STEAM_APPS/common/$install_dir"
 }
 
+steam_has_login() {
+  [[ -s "$STEAM_LOGIN_USERS" ]] && grep -Fq '"AccountName"' "$STEAM_LOGIN_USERS"
+}
+
 launch_steam() {
   info "Opening Windows Steam..."
   wine_run "$STEAM_EXE" -silent
 }
 
+ori_process_running() {
+  local tasks
+  tasks="$(wine_run tasklist 2>/dev/null || true)"
+  printf '%s\n' "$tasks" | grep -Eiq '(^|[[:space:]])'"$ORI_EXE"'([[:space:]]|$)'
+}
+
+wait_for_ori_process() {
+  local attempts=30
+  local i=0
+  while [[ "$i" -lt "$attempts" ]]; do
+    if ori_process_running; then
+      return 0
+    fi
+    sleep 2
+    i=$((i + 1))
+  done
+  return 1
+}
+
 launch_ori() {
+  if ! steam_has_login; then
+    warn "Steam is installed, but no signed-in account is detected."
+    info "Opening Steam so you can sign in. Re-run ./ori afterwards."
+    launch_steam
+    return 8
+  fi
+
   info "Launching Ori and the Will of the Wisps..."
-  # Steam URI launch preserves Steam DRM, cloud saves, achievements and overlay.
   wine_run "$STEAM_EXE" -silent -applaunch "$ORI_APP_ID"
 
-  # Give Steam a short window to reject a malformed/missing launch.
-  sleep 3
-  info "Launch request handed to Steam."
+  if wait_for_ori_process; then
+    printf 'LAST_LAUNCH_STATUS=started\n' > "$STATE_DIR/last-launch.env"
+    printf 'LAST_LAUNCH_AT=%q\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> "$STATE_DIR/last-launch.env"
+    info "Ori process detected: $ORI_EXE"
+    return 0
+  fi
+
+  printf 'LAST_LAUNCH_STATUS=not-detected\n' > "$STATE_DIR/last-launch.env"
+  printf 'LAST_LAUNCH_AT=%q\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> "$STATE_DIR/last-launch.env"
+  error "Steam received the launch request, but $ORI_EXE was not detected within 60 seconds."
+  error "Check Steam for a sign-in, update, first-run dialog, or game error."
+  error "Diagnostics: ./ori --doctor"
+  return 9
 }
 
 doctor() {
   init_paths
 
-  local macos arch rosetta runtime prefix steam ori disk
+  local macos arch rosetta runtime prefix steam ori disk last_launch
   macos="$(sw_vers -productVersion 2>/dev/null || echo unknown)"
   arch="$(uname -m)"
   rosetta="$(/usr/bin/arch -x86_64 /usr/bin/true >/dev/null 2>&1 && echo available || echo missing)"
@@ -81,6 +121,10 @@ doctor() {
   steam="$(steam_is_installed && echo installed || echo missing)"
   ori="$(ori_is_installed && echo installed || echo missing)"
   disk="$(df -h "$HOME" | awk 'NR==2 {print $4}')"
+  last_launch="never"
+  if [[ -f "$STATE_DIR/last-launch.env" ]]; then
+    last_launch="$(tr '\n' ' ' < "$STATE_DIR/last-launch.env")"
+  fi
 
   cat <<EOF
 OriMac diagnostics
@@ -98,6 +142,7 @@ Ori 1057090:    $ori
 App support:    $APP_SUPPORT_DIR
 Logs:           $LOG_DIR
 Disk free:      $disk
+Last launch:    $last_launch
 EOF
 
   if [[ -f "$WHISKY_LIBRARIES/WhiskyWineVersion.plist" ]]; then
