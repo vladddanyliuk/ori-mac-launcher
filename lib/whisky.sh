@@ -12,7 +12,7 @@ RUNTIME_SHA256="01f3a1b43b98065fe20c529c1023b61dd79a6d2ad93bba6040865f646481ccf3
 RUNTIME_DXMT_VERSION="0.80"
 RUNTIME_DXVK_VERSION="1.10.3"
 PREFIX_SCHEMA_VERSION="1"
-TUNING_SCHEMA_VERSION="4"
+TUNING_SCHEMA_VERSION="5"
 
 ORI_RUNTIME_DIR="$APP_SUPPORT_DIR/runtime"
 WHISKY_LIBRARIES="$ORI_RUNTIME_DIR/Libraries"
@@ -304,11 +304,15 @@ apply_display_tuning() {
   # Avoid Wine's virtual desktop: it can make a native game look like a streamed/scaled surface.
   wine_run reg delete 'HKCU\Software\Wine\Explorer' /v Desktop /f >/dev/null 2>&1 || true
 
-  local game_key='HKCU\Software\Moon Studios\OriAndTheWilloftheWisps'
-  wine_run reg add "$game_key" /v 'Screenmanager Resolution Use Native_h1405027254' /t REG_DWORD /d "$(profile_value display.useNativeResolution)" /f >/dev/null
-  wine_run reg add "$game_key" /v 'Screenmanager Fullscreen mode_h3630240806' /t REG_DWORD /d "$(profile_value display.fullscreenMode)" /f >/dev/null
-  wine_run reg add "$game_key" /v 'Screenmanager Resolution Width_h182942802' /t REG_DWORD /d "$target_width" /f >/dev/null
-  wine_run reg add "$game_key" /v 'Screenmanager Resolution Height_h2627697771' /t REG_DWORD /d "$target_height" /f >/dev/null
+  local uses_registry game_key
+  uses_registry="$(profile_value screenmanagerRegistry 2>/dev/null || echo 0)"
+  if [[ "$uses_registry" == "1" ]]; then
+    game_key="$(profile_value registryKey)"
+    wine_run reg add "$game_key" /v 'Screenmanager Resolution Use Native_h1405027254' /t REG_DWORD /d "$(profile_value display.useNativeResolution)" /f >/dev/null
+    wine_run reg add "$game_key" /v 'Screenmanager Fullscreen mode_h3630240806' /t REG_DWORD /d "$(profile_value display.fullscreenMode)" /f >/dev/null
+    wine_run reg add "$game_key" /v 'Screenmanager Resolution Width_h182942802' /t REG_DWORD /d "$target_width" /f >/dev/null
+    wine_run reg add "$game_key" /v 'Screenmanager Resolution Height_h2627697771' /t REG_DWORD /d "$target_height" /f >/dev/null
+  fi
 }
 
 apply_audio_tuning() {
@@ -328,6 +332,7 @@ apply_game_tuning() {
   apply_audio_tuning
 
   printf 'TUNING_VERSION=%s\n' "$TUNING_SCHEMA_VERSION" > "$state"
+  printf 'GAME_SLUG=%q\n' "$GAME_SLUG" >> "$state"
   printf 'DISPLAY_PIXELS=%q\n' "$(detect_main_display_pixels || true)" >> "$state"
   printf 'TARGET_RESOLUTION=%qx%q\n' "$(profile_value display.targetWidth)" "$(profile_value display.targetHeight)" >> "$state"
   printf 'RETINA_MODE=%q\n' "$(profile_value display.retinaMode)" >> "$state"
@@ -341,7 +346,7 @@ apply_game_tuning() {
     info "Resetting cached Wine audio devices for the new tuning profile..."
     wine_run reg delete 'HKLM\Software\Microsoft\Windows\CurrentVersion\MMDevices' /f >/dev/null 2>&1 || true
 
-    info "Applied M-series gaming profile: forced 1920x1080 exclusive fullscreen + CoreAudio stable buffer + ESYNC."
+    info "Applied $GAME_NAME profile: $(profile_value display.targetWidth)x$(profile_value display.targetHeight) fullscreen + CoreAudio stable buffer + ESYNC."
     wine_env
     "$WHISKY_WINESERVER" -k >/dev/null 2>&1 || true
     "$WHISKY_WINESERVER" -w >/dev/null 2>&1 || true
