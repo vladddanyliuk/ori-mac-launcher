@@ -14,9 +14,9 @@ cd ori-mac-launcher
 
 OriMac performs these steps automatically:
 1. checks Apple Silicon/macOS/Rosetta;
-2. installs the maintained Whisky app if its runtime is not present;
-3. downloads and verifies the WhiskyWine runtime metadata/archive;
-4. creates a private Wine prefix under OriMac's own Application Support folder;
+2. downloads the pinned WhiskyWine `3.1.1` runtime directly from its maintained upstream release;
+3. verifies the pinned SHA-256 before extracting anything;
+4. creates a private Wine prefix and deploys DXMT `0.80` for DirectX 11 → Metal;
 5. installs the Windows Steam client;
 6. opens Steam for the unavoidable account sign-in/game purchase/install UI;
 7. once App ID `1057090` is installed, launches Ori directly on subsequent `./ori` runs.
