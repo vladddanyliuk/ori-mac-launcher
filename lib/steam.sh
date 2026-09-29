@@ -30,12 +30,12 @@ ensure_steam() {
   download_steam
   info "Installing Windows Steam..."
   # /S is the NSIS silent-install flag used by SteamSetup.
-  wine_run "$STEAM_INSTALLER" /S
+  wine_program_wait "$STEAM_INSTALLER" /S
   wineserver_wait
 
   if ! steam_is_installed; then
     warn "Silent Steam installation did not finish synchronously; retrying interactively."
-    wine_run "$STEAM_INSTALLER"
+    wine_program_wait "$STEAM_INSTALLER"
     wineserver_wait
   fi
 
@@ -61,7 +61,7 @@ steam_has_login() {
 
 launch_steam() {
   info "Opening Windows Steam..."
-  wine_run "$STEAM_EXE" -silent
+  wine_program "$STEAM_EXE" -silent
 }
 
 ori_process_running() {
@@ -92,7 +92,7 @@ launch_ori() {
   fi
 
   info "Launching Ori and the Will of the Wisps..."
-  wine_run "$STEAM_EXE" -silent -applaunch "$ORI_APP_ID"
+  wine_program "$STEAM_EXE" -silent -applaunch "$ORI_APP_ID"
 
   if wait_for_ori_process; then
     printf 'LAST_LAUNCH_STATUS=started\n' > "$STATE_DIR/last-launch.env"
