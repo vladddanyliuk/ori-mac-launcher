@@ -5,8 +5,12 @@
   <key>slug</key><string>blind</string>
   <key>steamAppId</key><integer>261570</integer>
   <key>executable</key><string>ori.exe</string>
-  <key>screenmanagerRegistry</key><integer>0</integer>
+  <key>screenmanagerRegistry</key><integer>1</integer>
   <key>registryKey</key><string>HKCU\Software\Microsoft Studios\Ori And The Blind Forest</string>
+  <key>screenWidthRegistryName</key><string>Screenmanager Resolution Width_h182942802</string>
+  <key>screenHeightRegistryName</key><string>Screenmanager Resolution Height_h2627697771</string>
+  <key>fullscreenRegistryName</key><string>Screenmanager Is Fullscreen mode_h3981298716</string>
+  <key>monitorRegistryName</key><string>UnitySelectMonitor_h17969598</string>
 
   <key>windowsVersion</key><string>win10</string>
   <key>runtimeProvider</key><string>frankea/WhiskyWine</string>
@@ -20,7 +24,7 @@
     <key>retinaMode</key><string>n</string>
     <key>dpi</key><integer>96</integer>
     <key>useNativeResolution</key><integer>0</integer>
-    <key>fullscreenMode</key><integer>0</integer>
+    <key>fullscreenMode</key><integer>1</integer>
     <key>targetWidth</key><integer>1920</integer>
     <key>targetHeight</key><integer>1080</integer>
   </dict>
@@ -33,7 +37,7 @@
   <dict>
     <key>WINEDEBUG</key><string>-all</string>
     <key>WINEESYNC</key><string>1</string>
-    <key>WINEMSYNC</key><string>0</string>
+    <key>WINEMSYNC</key><string>1</string>
     <key>LC_ALL</key><string>en_US.UTF-8</string>
     <key>LANG</key><string>en_US.UTF-8</string>
     <key>LC_TIME</key><string>C</string>
@@ -57,6 +61,6 @@
   <key>knownWorkarounds</key><array>
     <string>Launch with explicit Unity 1920x1080 fullscreen arguments because the game may expose only the macOS logical mode through Wine.</string>
     <string>Keep Wine Retina mode disabled for the gameplay path to avoid hidden 2x backing-pixel cost.</string>
-    <string>Use DXMT/D3D11 and ESYNC-only scheduling with CoreAudio stable buffering.</string>
+    <string>Use DXMT/D3D11 with Whisky-compatible MSync (ESYNC+MSYNC) scheduling and CoreAudio stable buffering.</string>
   </array>
 </dict></plist>
