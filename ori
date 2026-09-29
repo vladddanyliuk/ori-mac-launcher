@@ -38,9 +38,9 @@ run_game() {
   platform_check
   ensure_runtime
   ensure_ori_bottle
-  ensure_steam
   select_game_for_run "$requested" || exit $?
   apply_game_tuning
+  ensure_steam
 
   if ! ori_is_installed; then
     warn "$GAME_NAME is not installed yet."
