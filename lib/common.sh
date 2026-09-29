@@ -35,7 +35,9 @@ error() { printf '[%s] [ERROR] %s\n' "$(_ts)" "$*" >&2; }
 
 on_error() {
   local code="$1" line="$2" command="${3:-unknown}"
-  command="${command//$HOME/~}"
+  case "$command" in
+    "$HOME"*) command="~${command#"$HOME"}" ;;
+  esac
   error "Command failed at line $line (exit $code): $command"
   error "Log: $CURRENT_LOG"
 }
