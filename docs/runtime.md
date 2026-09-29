@@ -102,6 +102,8 @@ All Ori-specific choices live in `config/ori.json`, including:
 
 The shell modules consume this profile rather than requiring users to edit environment variables.
 
+The profile also carries the maintained Whisky Steam launcher compatibility settings used by OriMac: UTF-8 locale handling, Chromium/CEF sandbox disable flags, Steam runtime disable, and extended WinHTTP timeouts. These are applied only to processes inside OriMac's isolated Wine prefix.
+
 ## Redistribution and ownership
 
 OriMac does not vendor or commit:
@@ -112,6 +114,10 @@ OriMac does not vendor or commit:
 - Apple proprietary graphics frameworks.
 
 Users download the compatibility runtime from its upstream distribution and Steam from Valve. Users must use their own Steam account/license for Ori.
+
+### Steam CEF sandbox note
+
+The Windows Steam client uses Chromium Embedded Framework. The maintained Whisky compatibility presets disable CEF's Chromium sandbox because it does not function correctly under this Wine environment. That weakens process isolation **inside the Windows Steam compatibility session**, so OriMac keeps the whole stack in a dedicated prefix and does not expose this setting system-wide.
 
 ## Provider boundary
 
