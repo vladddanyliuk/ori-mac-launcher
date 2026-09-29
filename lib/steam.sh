@@ -417,11 +417,12 @@ Architecture:   $arch
 Rosetta:        $rosetta
 Runtime:        $runtime
 Pinned version: $RUNTIME_VERSION
-Renderer:       DXMT $RUNTIME_DXMT_VERSION
+Renderer:       $(profile_value preferredRenderer) $(profile_value preferredRendererVersion)
 Detected games: $(installed_ori_summary)
 Selected game:  $GAME_NAME (Steam $ORI_APP_ID)
 Game target:    $(profile_value display.targetWidth)x$(profile_value display.targetHeight), fullscreen
 Retina/DPI:     $(profile_value display.retinaMode) / $(profile_value display.dpi)
+High DPI aware: $(profile_value highDpiAware 2>/dev/null || echo 0)
 Sync:           ESYNC=$(profile_value environment.WINEESYNC), MSYNC=$(profile_value environment.WINEMSYNC)
 Audio:          $(profile_value audio.driver), buffer $(profile_value audio.directSoundBuffer)
 Runtime wine:   $WHISKY_WINE
