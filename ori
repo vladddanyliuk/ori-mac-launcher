@@ -39,6 +39,7 @@ main() {
       platform_check
       ensure_runtime
       ensure_ori_bottle
+      apply_game_tuning
       ensure_steam
       if ! ori_is_installed; then
         warn "Ori and the Will of the Wisps is not installed yet."
@@ -50,6 +51,7 @@ main() {
       platform_check
       ensure_runtime
       ensure_ori_bottle
+      apply_game_tuning
       ensure_steam
       launch_steam
       ;;
@@ -60,6 +62,7 @@ main() {
       platform_check
       ensure_runtime
       ensure_ori_bottle
+      apply_game_tuning
       runtime_self_test
       ;;
     --logs)
