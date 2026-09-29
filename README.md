@@ -69,4 +69,4 @@ Rosetta is installed by macOS when required. No Homebrew or Whisky GUI is requir
 ./tests/test.sh
 ```
 
-CI validates shell syntax, ShellCheck, state-machine decisions, manifest parsing and safety invariants. Real gameplay validation is tracked separately because GitHub's CI runners cannot interactively sign into Steam or play the game.
+The repository includes CI for shell syntax, ShellCheck, state-machine decisions, manifest parsing and safety invariants. Real gameplay validation is tracked separately because CI cannot interactively sign into Steam or play the game.
