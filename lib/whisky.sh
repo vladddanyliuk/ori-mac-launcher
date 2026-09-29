@@ -12,7 +12,7 @@ RUNTIME_SHA256="01f3a1b43b98065fe20c529c1023b61dd79a6d2ad93bba6040865f646481ccf3
 RUNTIME_DXMT_VERSION="0.80"
 RUNTIME_DXVK_VERSION="1.10.3"
 PREFIX_SCHEMA_VERSION="1"
-TUNING_SCHEMA_VERSION="7"
+TUNING_SCHEMA_VERSION="8"
 
 ORI_RUNTIME_DIR="$APP_SUPPORT_DIR/runtime"
 WHISKY_LIBRARIES="$ORI_RUNTIME_DIR/Libraries"
@@ -245,21 +245,87 @@ deploy_dxmt() {
   printf 'DXMT_VERSION=%q\n' "$RUNTIME_DXMT_VERSION" > "$STATE_DIR/dxmt.env"
 }
 
+is_wine_builtin_pe() {
+  local file="$1"
+  [[ -f "$file" ]] || return 1
+  local marker
+  marker="$(LC_ALL=C dd if="$file" bs=1 skip=64 count=16 2>/dev/null || true)"
+  [[ "$marker" == "Wine builtin DLL" ]]
+}
+
+remove_native_dll_if_present() {
+  local file="$1"
+  [[ -f "$file" ]] || return 0
+  if ! is_wine_builtin_pe "$file"; then
+    rm -f "$file"
+  fi
+}
+
+deploy_dxvk() {
+  local payload="$WHISKY_LIBRARIES/DXVK"
+  local system32="$ORI_PREFIX/drive_c/windows/system32"
+  local syswow64="$ORI_PREFIX/drive_c/windows/syswow64"
+  local dll
+
+  [[ -d "$payload/x64" ]] || {
+    error "Pinned runtime is missing the DXVK x64 payload."
+    exit 5
+  }
+
+  # Remove DXMT's native dxgi before enabling DXVK. The maintained Whisky
+  # runtime intentionally uses Wine's builtin DXGI with DXVK.
+  remove_native_dll_if_present "$system32/dxgi.dll"
+  [[ -d "$syswow64" ]] && remove_native_dll_if_present "$syswow64/dxgi.dll"
+
+  for dll in "$payload/x64"/*.dll; do
+    [[ -f "$dll" ]] || continue
+    cp -f "$dll" "$system32/$(basename "$dll")"
+  done
+
+  if [[ -d "$syswow64" && -d "$payload/x32" ]]; then
+    for dll in "$payload/x32"/*.dll; do
+      [[ -f "$dll" ]] || continue
+      cp -f "$dll" "$syswow64/$(basename "$dll")"
+    done
+  fi
+}
+
+apply_graphics_backend() {
+  local backend current=""
+  backend="$(profile_value preferredRenderer)"
+
+  if [[ -f "$STATE_DIR/backend.env" ]]; then
+    current="$(awk -F= '/^BACKEND=/ {print $2; exit}' "$STATE_DIR/backend.env" 2>/dev/null || true)"
+  fi
+
+  case "$backend" in
+    DXMT)
+      # Remove a stale DXVK d3d9 native DLL; DXMT does not use it.
+      remove_native_dll_if_present "$ORI_PREFIX/drive_c/windows/system32/d3d9.dll"
+      [[ -d "$ORI_PREFIX/drive_c/windows/syswow64" ]] &&         remove_native_dll_if_present "$ORI_PREFIX/drive_c/windows/syswow64/d3d9.dll"
+      deploy_dxmt
+      ;;
+    DXVK)
+      deploy_dxvk
+      ;;
+    *)
+      error "Unsupported graphics backend in profile: $backend"
+      exit 5
+      ;;
+  esac
+
+  printf 'BACKEND=%s\n' "$backend" > "$STATE_DIR/backend.env"
+
+  if [[ "$current" != "$backend" ]]; then
+    info "Graphics backend switched to $backend."
+  fi
+}
+
 ensure_ori_bottle() {
   mkdir -p "$ORI_PREFIX"
   validate_prefix_schema
 
   if prefix_is_initialized; then
-    # Re-deploy when the pinned runtime/backend version changes.
-    local installed_dxmt=""
-    if [[ -f "$STATE_DIR/dxmt.env" ]]; then
-      # shellcheck disable=SC1090
-      source "$STATE_DIR/dxmt.env"
-      installed_dxmt="${DXMT_VERSION:-}"
-    fi
-    if [[ "$installed_dxmt" != "$RUNTIME_DXMT_VERSION" ]]; then
-      deploy_dxmt
-    fi
     return 0
   fi
 
@@ -272,8 +338,6 @@ ensure_ori_bottle() {
     error "Wine prefix initialization failed."
     exit 5
   }
-
-  deploy_dxmt
 
   # Keep the prefix in Windows 10 compatibility mode without opening winecfg UI.
   wine_run winecfg -v win10 >/dev/null 2>&1
@@ -306,6 +370,17 @@ apply_display_tuning() {
   target_height="$(profile_value display.targetHeight)"
 
   wine_run reg add 'HKCU\Software\Wine\Mac Driver' /v RetinaMode /t REG_SZ /d "$(profile_value display.retinaMode)" /f >/dev/null
+
+  local dpi_aware app_name
+  dpi_aware="$(profile_value highDpiAware 2>/dev/null || echo 0)"
+  app_name="$(printf '%s' "$ORI_EXE" | tr '[:upper:]' '[:lower:]')"
+  if [[ "$dpi_aware" == "1" ]]; then
+    wine_run reg add 'HKCU\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers' \
+      /v "$app_name" /t REG_SZ /d HIGHDPIAWARE /f >/dev/null
+  else
+    wine_run reg delete 'HKCU\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers' \
+      /v "$app_name" /f >/dev/null 2>&1 || true
+  fi
   wine_run reg add 'HKCU\Control Panel\Desktop' /v LogPixels /t REG_DWORD /d "$(profile_value display.dpi)" /f >/dev/null
   wine_run reg add 'HKCU\Software\Wine\Direct3D' /v VideoMemorySize /t REG_SZ /d "$(profile_value display.videoMemoryMB)" /f >/dev/null
 
@@ -343,6 +418,7 @@ apply_game_tuning() {
   fi
 
   # Reapply on every launch because Unity may rewrite its Screenmanager keys.
+  apply_graphics_backend
   apply_display_tuning
   apply_audio_tuning
 
@@ -350,7 +426,9 @@ apply_game_tuning() {
   printf 'GAME_SLUG=%q\n' "$GAME_SLUG" >> "$state"
   printf 'DISPLAY_PIXELS=%q\n' "$(detect_main_display_pixels || true)" >> "$state"
   printf 'TARGET_RESOLUTION=%qx%q\n' "$(profile_value display.targetWidth)" "$(profile_value display.targetHeight)" >> "$state"
+  printf 'BACKEND=%q\n' "$(profile_value preferredRenderer)" >> "$state"
   printf 'RETINA_MODE=%q\n' "$(profile_value display.retinaMode)" >> "$state"
+  printf 'HIGH_DPI_AWARE=%q\n' "$(profile_value highDpiAware 2>/dev/null || echo 0)" >> "$state"
   printf 'DPI=%q\n' "$(profile_value display.dpi)" >> "$state"
   printf 'VIDEO_MEMORY_MB=%q\n' "$(profile_value display.videoMemoryMB)" >> "$state"
   printf 'AUDIO_DRIVER=%q\n' "$(profile_value audio.driver)" >> "$state"
@@ -382,16 +460,30 @@ runtime_self_test() {
   fi
 
   local system32="$ORI_PREFIX/drive_c/windows/system32"
-  local dll
-  for dll in d3d11.dll dxgi.dll d3d10core.dll winemetal.dll; do
-    [[ -f "$system32/$dll" ]] || {
-      error "DXMT self-test failed: $dll is not deployed."
-      exit 7
-    }
-  done
+  local backend
+  backend="$(profile_value preferredRenderer)"
+
+  case "$backend" in
+    DXMT)
+      for dll in d3d11.dll dxgi.dll d3d10core.dll winemetal.dll; do
+        [[ -f "$system32/$dll" ]] || {
+          error "DXMT self-test failed: $dll is not deployed."
+          exit 7
+        }
+      done
+      ;;
+    DXVK)
+      for dll in d3d11.dll d3d10core.dll; do
+        [[ -f "$system32/$dll" ]] || {
+          error "DXVK self-test failed: $dll is not deployed."
+          exit 7
+        }
+      done
+      ;;
+  esac
 
   info "Wine responded successfully."
-  info "DXMT $RUNTIME_DXMT_VERSION payload is deployed."
+  info "$backend backend payload is deployed."
   info "Runtime self-test passed."
 }
 
