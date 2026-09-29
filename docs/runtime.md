@@ -18,19 +18,20 @@ Ori itself is a DirectX 11 title, so DXMT is the preferred backend for the MVP.
 OriMac does **not** depend on Whisky's first-run GUI.
 
 `./ori`:
-1. installs the signed/notarized maintained Whisky app via its qualified Homebrew tap when missing;
-2. fetches the provider's `WhiskyWineVersion.plist`;
-3. derives the matching `Libraries.tar.gz` release URL;
-4. verifies SHA-256 when the provider metadata publishes it;
-5. extracts the runtime into the same Application Support location expected by WhiskyWine;
-6. initializes OriMac's own prefix with `wineboot --init`.
+1. downloads the pinned `Libraries.tar.gz` directly from the maintained WhiskyWine release;
+2. verifies the exact pinned SHA-256 digest;
+3. extracts the runtime into OriMac's private Application Support directory;
+4. initializes OriMac's own prefix with `wineboot --init`;
+5. deploys the pinned DXMT DLL set into the prefix.
 
 The launcher therefore owns its prefix and state while the Wine/graphics implementation remains replaceable.
 
 ## Runtime sources
 
-Metadata:
-`https://frankea.github.io/Whisky/WhiskyWineVersion.plist`
+Pinned runtime: `3.1.1`  
+Pinned SHA-256: `01f3a1b43b98065fe20c529c1023b61dd79a6d2ad93bba6040865f646481ccf3`  
+Pinned DXMT: `0.80`  
+Pinned DXVK payload: `1.10.3`
 
 Archive template:
 `https://github.com/frankea/Whisky/releases/download/v<VERSION>/Libraries.tar.gz`
