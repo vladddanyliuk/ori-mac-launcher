@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>name</key>
+  <string>Ori and the Will of the Wisps</string>
+  <key>steamAppId</key>
+  <integer>1057090</integer>
+  <key>executable</key>
+  <string>oriwotw.exe</string>
+  <key>windowsVersion</key>
+  <string>win10</string>
+  <key>runtimeProvider</key>
+  <string>frankea/WhiskyWine</string>
+  <key>runtimeVersion</key>
+  <string>3.1.1</string>
+  <key>preferredRenderer</key>
+  <string>DXMT</string>
+  <key>preferredRendererVersion</key>
+  <string>0.80</string>
+  <key>fallbackRenderer</key>
+  <string>DXVK</string>
+  <key>fallbackRendererVersion</key>
+  <string>1.10.3</string>
+  <key>environment</key>
+  <dict>
+    <key>WINEDEBUG</key><string>-all</string>
+    <key>WINEESYNC</key><string>1</string>
+    <key>WINEMSYNC</key><string>1</string>
+    <key>LC_ALL</key><string>en_US.UTF-8</string>
+    <key>LANG</key><string>en_US.UTF-8</string>
+    <key>LC_TIME</key><string>C</string>
+    <key>LC_NUMERIC</key><string>C</string>
+    <key>CEF_DISABLE_SANDBOX</key><string>1</string>
+    <key>STEAM_DISABLE_CEF_SANDBOX</key><string>1</string>
+    <key>STEAM_RUNTIME</key><string>0</string>
+    <key>WINHTTP_CONNECT_TIMEOUT</key><string>90000</string>
+    <key>WINHTTP_RECEIVE_TIMEOUT</key><string>180000</string>
+    <key>WINE_FORCE_HTTP11</key><string>1</string>
+    <key>WINE_MAX_CONNECTIONS_PER_SERVER</key><string>10</string>
+  </dict>
+  <key>dllOverrides</key>
+  <string>dxgi=n,b;d3d10core=n,b;d3d11=n,b;winemetal=b;d3d12=</string>
+  <key>steamLaunchMode</key>
+  <string>applaunch</string>
+  <key>launchArguments</key>
+  <array/>
+  <key>knownWorkarounds</key>
+  <array>
+    <string>Use DXMT as the default DirectX 11 backend; DXMT v0.73 fixed Ori's historical missing-character rendering bug.</string>
+    <string>Apply Steam Chromium locale and sandbox compatibility environment inherited from the maintained Whisky launcher presets.</string>
+    <string>Use extended WinHTTP timeouts for large Steam downloads.</string>
+    <string>Keep Ori in the dedicated prefix; do not reuse the native macOS Steam installation.</string>
+    <string>Use windowed or borderless mode if a runtime-specific fullscreen focus bug appears.</string>
+  </array>
+</dict>
+</plist>
