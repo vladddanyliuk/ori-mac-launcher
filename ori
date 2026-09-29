@@ -16,6 +16,7 @@ Usage:
   ./ori              Bootstrap if needed, then launch Ori
   ./ori --steam      Open Windows Steam in the Ori bottle
   ./ori --doctor     Print diagnostics
+  ./ori --self-test  Validate runtime/prefix without Steam login
   ./ori --logs       Reveal log directory in Finder
   ./ori --reset      Reset the Ori bottle after confirmation
   ./ori --help       Show this help
@@ -26,7 +27,7 @@ main() {
   init_paths
   rotate_logs
   exec > >(tee -a "$CURRENT_LOG") 2>&1
-  trap 'on_error $? $LINENO' ERR
+  trap 'on_error "$?" "$LINENO" "$BASH_COMMAND"' ERR
 
   local command="${1:-run}"
   case "$command" in
@@ -52,6 +53,12 @@ main() {
       ;;
     --doctor)
       doctor
+      ;;
+    --self-test)
+      platform_check
+      ensure_runtime
+      ensure_ori_bottle
+      runtime_self_test
       ;;
     --logs)
       mkdir -p "$LOG_DIR"
