@@ -12,7 +12,7 @@ RUNTIME_SHA256="01f3a1b43b98065fe20c529c1023b61dd79a6d2ad93bba6040865f646481ccf3
 RUNTIME_DXMT_VERSION="0.80"
 RUNTIME_DXVK_VERSION="1.10.3"
 PREFIX_SCHEMA_VERSION="1"
-TUNING_SCHEMA_VERSION="2"
+TUNING_SCHEMA_VERSION="3"
 
 ORI_RUNTIME_DIR="$APP_SUPPORT_DIR/runtime"
 WHISKY_LIBRARIES="$ORI_RUNTIME_DIR/Libraries"
@@ -130,7 +130,12 @@ wine_env() {
   MTL_ENABLE_METAL_EVENTS="$(profile_value environment.MTL_ENABLE_METAL_EVENTS)"
   CX_ROOT="$WHISKY_LIBRARIES/Wine"
   PATH="$WHISKY_LIBRARIES/Wine/bin:$PATH"
-  export WINEPREFIX WINEDEBUG WINEESYNC WINEMSYNC
+  export WINEPREFIX WINEDEBUG WINEESYNC
+  if [[ "$WINEMSYNC" == "1" ]]; then
+    export WINEMSYNC
+  else
+    unset WINEMSYNC
+  fi
   export LC_ALL LANG LC_TIME LC_NUMERIC
   export CEF_DISABLE_SANDBOX STEAM_DISABLE_CEF_SANDBOX STEAM_RUNTIME
   export WINHTTP_CONNECT_TIMEOUT WINHTTP_RECEIVE_TIMEOUT WINE_FORCE_HTTP11
@@ -289,10 +294,12 @@ except Exception:
 }
 
 apply_display_tuning() {
-  local pixels width height
+  local pixels width height target_width target_height
   pixels="$(detect_main_display_pixels || true)"
   width="${pixels%x*}"
   height="${pixels#*x}"
+  target_width="$(profile_value display.targetWidth)"
+  target_height="$(profile_value display.targetHeight)"
 
   wine_run reg add 'HKCU\Software\Wine\Mac Driver' /v RetinaMode /t REG_SZ /d "$(profile_value display.retinaMode)" /f >/dev/null
   wine_run reg add 'HKCU\Control Panel\Desktop' /v LogPixels /t REG_DWORD /d "$(profile_value display.dpi)" /f >/dev/null
@@ -303,11 +310,8 @@ apply_display_tuning() {
   local game_key='HKCU\Software\Moon Studios\OriAndTheWilloftheWisps'
   wine_run reg add "$game_key" /v 'Screenmanager Resolution Use Native_h1405027254' /t REG_DWORD /d "$(profile_value display.useNativeResolution)" /f >/dev/null
   wine_run reg add "$game_key" /v 'Screenmanager Fullscreen mode_h3630240806' /t REG_DWORD /d "$(profile_value display.fullscreenMode)" /f >/dev/null
-
-  if [[ "$pixels" =~ ^[0-9]+x[0-9]+$ ]]; then
-    wine_run reg add "$game_key" /v 'Screenmanager Resolution Width_h182942802' /t REG_DWORD /d "$width" /f >/dev/null
-    wine_run reg add "$game_key" /v 'Screenmanager Resolution Height_h2627697771' /t REG_DWORD /d "$height" /f >/dev/null
-  fi
+  wine_run reg add "$game_key" /v 'Screenmanager Resolution Width_h182942802' /t REG_DWORD /d "$target_width" /f >/dev/null
+  wine_run reg add "$game_key" /v 'Screenmanager Resolution Height_h2627697771' /t REG_DWORD /d "$target_height" /f >/dev/null
 }
 
 apply_audio_tuning() {
@@ -328,13 +332,19 @@ apply_game_tuning() {
 
   printf 'TUNING_VERSION=%s\n' "$TUNING_SCHEMA_VERSION" > "$state"
   printf 'DISPLAY_PIXELS=%q\n' "$(detect_main_display_pixels || true)" >> "$state"
+  printf 'TARGET_RESOLUTION=%qx%q\n' "$(profile_value display.targetWidth)" "$(profile_value display.targetHeight)" >> "$state"
   printf 'RETINA_MODE=%q\n' "$(profile_value display.retinaMode)" >> "$state"
   printf 'DPI=%q\n' "$(profile_value display.dpi)" >> "$state"
   printf 'AUDIO_DRIVER=%q\n' "$(profile_value audio.driver)" >> "$state"
   printf 'AUDIO_BUFFER=%q\n' "$(profile_value audio.directSoundBuffer)" >> "$state"
+  printf 'ESYNC=%q\n' "$(profile_value environment.WINEESYNC)" >> "$state"
+  printf 'MSYNC=%q\n' "$(profile_value environment.WINEMSYNC)" >> "$state"
 
   if [[ "$applied" != "$TUNING_SCHEMA_VERSION" ]]; then
-    info "Applied Mac display/audio tuning: Retina HiDPI + native resolution + stable CoreAudio."
+    info "Applied M-series gaming profile: 2560x1440 exclusive fullscreen + CoreAudio stable buffer + ESYNC."
+    wine_env
+    "$WHISKY_WINESERVER" -k >/dev/null 2>&1 || true
+    "$WHISKY_WINESERVER" -w >/dev/null 2>&1 || true
   fi
 }
 
