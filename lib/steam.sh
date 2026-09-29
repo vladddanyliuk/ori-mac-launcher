@@ -5,7 +5,7 @@ STEAM_INSTALLER="$DOWNLOAD_DIR/SteamSetup.exe"
 STEAM_DIR="$ORI_PREFIX/drive_c/Program Files (x86)/Steam"
 STEAM_EXE="$STEAM_DIR/Steam.exe"
 STEAM_APPS="$STEAM_DIR/steamapps"
-ORI_MANIFEST="$STEAM_APPS/appmanifest_${ORI_APP_ID}.acf"
+ORI_MANIFEST_NAME="appmanifest_${ORI_APP_ID}.acf"
 STEAM_LOGIN_USERS="$STEAM_DIR/config/loginusers.vdf"
 
 steam_installer_is_sane() {
@@ -58,18 +58,50 @@ ensure_steam() {
   }
 }
 
+ori_manifest_path() {
+  local candidate
+
+  candidate="$STEAM_APPS/$ORI_MANIFEST_NAME"
+  if [[ -f "$candidate" ]]; then
+    printf '%s\n' "$candidate"
+    return 0
+  fi
+
+  # Steam can place a library elsewhere inside the isolated C: drive.
+  candidate="$(find "$ORI_PREFIX/drive_c" -type f -name "$ORI_MANIFEST_NAME" -print -quit 2>/dev/null || true)"
+  if [[ -n "$candidate" ]]; then
+    printf '%s\n' "$candidate"
+    return 0
+  fi
+
+  return 1
+}
+
 ori_is_installed() {
-  [[ -f "$ORI_MANIFEST" ]] || return 1
-  grep -Eq "\"appid\"[[:space:]]+\"${ORI_APP_ID}\"" "$ORI_MANIFEST" || return 1
-  local dir
-  dir="$(ori_install_dir 2>/dev/null || true)"
-  [[ -n "$dir" && -f "$dir/$ORI_EXE" ]]
+  local manifest
+  manifest="$(ori_manifest_path 2>/dev/null || true)"
+  [[ -n "$manifest" && -f "$manifest" ]] || return 1
+  grep -Eq "\"appid\"[[:space:]]+\"${ORI_APP_ID}\"" "$manifest"
 }
 
 ori_install_dir() {
-  local install_dir
-  install_dir="$(awk -F'"' '/"installdir"/ {print $4; exit}' "$ORI_MANIFEST" 2>/dev/null || true)"
-  [[ -n "$install_dir" ]] && printf '%s\n' "$STEAM_APPS/common/$install_dir"
+  local manifest install_dir steamapps_dir
+  manifest="$(ori_manifest_path 2>/dev/null || true)"
+  [[ -n "$manifest" && -f "$manifest" ]] || return 1
+
+  install_dir="$(awk -F'"' '/"installdir"/ {print $4; exit}' "$manifest" 2>/dev/null || true)"
+  [[ -n "$install_dir" ]] || return 1
+
+  steamapps_dir="$(dirname "$manifest")"
+  printf '%s\n' "$steamapps_dir/common/$install_dir"
+}
+
+ori_executable_path() {
+  local dir
+  dir="$(ori_install_dir 2>/dev/null || true)"
+  [[ -n "$dir" && -d "$dir" ]] || return 1
+
+  find "$dir" -type f -iname "$ORI_EXE" -print -quit 2>/dev/null
 }
 
 steam_has_login() {
@@ -254,7 +286,9 @@ EOF
     printf 'DXVK version:    %s\n' "$(plist_value "$WHISKY_LIBRARIES/WhiskyWineVersion.plist" dxvkVersion || echo unknown)"
   fi
 
-  if [[ -f "$ORI_MANIFEST" ]]; then
-    printf 'Ori path:        %s\n' "$(ori_install_dir)"
-  fi
+  local manifest_path exe_path
+  manifest_path="$(ori_manifest_path 2>/dev/null || true)"
+  exe_path="$(ori_executable_path 2>/dev/null || true)"
+  [[ -n "$manifest_path" ]] && printf 'Ori manifest:    %s\n' "$manifest_path"
+  [[ -n "$exe_path" ]] && printf 'Ori executable:  %s\n' "$exe_path"
 }
