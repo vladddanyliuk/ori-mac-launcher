@@ -6,6 +6,7 @@
   <key>steamAppId</key><integer>261570</integer>
   <key>executable</key><string>ori.exe</string>
   <key>screenmanagerRegistry</key><integer>1</integer>
+  <key>highDpiAware</key><integer>1</integer>
   <key>registryKey</key><string>HKCU\Software\Microsoft Studios\Ori And The Blind Forest</string>
   <key>screenWidthRegistryName</key><string>Screenmanager Resolution Width_h182942802</string>
   <key>screenHeightRegistryName</key><string>Screenmanager Resolution Height_h2627697771</string>
@@ -15,10 +16,10 @@
   <key>windowsVersion</key><string>win10</string>
   <key>runtimeProvider</key><string>frankea/WhiskyWine</string>
   <key>runtimeVersion</key><string>3.1.1</string>
-  <key>preferredRenderer</key><string>DXMT</string>
-  <key>preferredRendererVersion</key><string>0.80</string>
-  <key>fallbackRenderer</key><string>DXVK</string>
-  <key>fallbackRendererVersion</key><string>1.10.3</string>
+  <key>preferredRenderer</key><string>DXVK</string>
+  <key>preferredRendererVersion</key><string>1.10.3</string>
+  <key>fallbackRenderer</key><string>DXMT</string>
+  <key>fallbackRendererVersion</key><string>0.80</string>
   <key>display</key>
   <dict>
     <key>retinaMode</key><string>y</string>
@@ -60,13 +61,13 @@
     <key>WINE_DISABLE_NTDLL_THREAD_REGS</key><string>1</string>
     <key>WINEPRELOADRESERVE</key><string>1</string>
   </dict>
-  <key>dllOverrides</key><string>dxgi=n,b;d3d10core=n,b;d3d11=n,b;winemetal=b;d3d12=</string>
+  <key>dllOverrides</key><string>dxgi=n,b;d3d9=n,b;d3d10core=n,b;d3d11=n,b;d3d12=</string>
   <key>steamLaunchMode</key><string>applaunch</string>
   <key>launchArguments</key><array/>
 
   <key>knownWorkarounds</key><array>
     <string>Launch with explicit Unity 1920x1080 fullscreen arguments because the game may expose only the macOS logical mode through Wine.</string>
     <string>Keep Wine Retina mode disabled for the gameplay path to avoid hidden 2x backing-pixel cost.</string>
-    <string>Use DXMT/D3D11 with Whisky-compatible MSync (ESYNC+MSYNC) scheduling and CoreAudio stable buffering.</string>
+    <string>Use DXVK/MoltenVK for this older Unity/D3D11 title, with Whisky-compatible MSync (ESYNC+MSYNC) scheduling and CoreAudio stable buffering.</string>
   </array>
 </dict></plist>
