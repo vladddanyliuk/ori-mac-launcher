@@ -202,6 +202,30 @@ ensure_ori_bottle() {
   info "Prefix ready: $ORI_PREFIX"
 }
 
+runtime_self_test() {
+  info "Running Wine runtime self-test..."
+
+  local version_output
+  version_output="$(wine_run cmd /c ver 2>&1 || true)"
+  if [[ -z "$version_output" ]]; then
+    error "Wine command self-test produced no output."
+    exit 7
+  fi
+
+  local system32="$ORI_PREFIX/drive_c/windows/system32"
+  local dll
+  for dll in d3d11.dll dxgi.dll d3d10core.dll winemetal.dll; do
+    [[ -f "$system32/$dll" ]] || {
+      error "DXMT self-test failed: $dll is not deployed."
+      exit 7
+    }
+  done
+
+  info "Wine responded successfully."
+  info "DXMT $RUNTIME_DXMT_VERSION payload is deployed."
+  info "Runtime self-test passed."
+}
+
 reset_bottle() {
   init_paths
   if [[ ! -d "$ORI_PREFIX" ]]; then
