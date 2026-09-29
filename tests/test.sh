@@ -44,8 +44,15 @@ for path, exp in zip(sys.argv[1:], expected):
     assert p["preferredRenderer"] == "DXMT"
     assert p["display"]["targetWidth"] == 1920
     assert p["display"]["targetHeight"] == 1080
-    assert p["display"]["retinaMode"] == "n"
+    if p["slug"] in ("blind", "blind-de"):
+        assert p["display"]["retinaMode"] == "y"
+        assert p["display"]["dpi"] == 192
+    else:
+        assert p["display"]["retinaMode"] == "n"
+    assert p["display"]["videoMemoryMB"] == 8192
     assert p["environment"]["WINEESYNC"] == "1"
+    assert p["environment"]["MONO_THREADS_SUSPEND"] == "1"
+    assert p["environment"]["D3DM_FORCE_D3D11"] == "1"
     if p["slug"] in ("blind", "blind-de"):
         assert p["environment"]["WINEMSYNC"] == "1"
         assert p["screenmanagerRegistry"] == 1
@@ -78,7 +85,9 @@ grep -Fq -- '-screen-fullscreen' "$ROOT/lib/steam.sh" || fail "fullscreen arg mi
 pass "Unity display args"
 
 echo "[7/10] tuning contract"
-grep -Fq 'TUNING_SCHEMA_VERSION="6"' "$ROOT/lib/whisky.sh" || fail "tuning schema not bumped"
+grep -Fq 'TUNING_SCHEMA_VERSION="7"' "$ROOT/lib/whisky.sh" || fail "tuning schema not bumped"
+grep -Fq "VideoMemorySize" "$ROOT/lib/whisky.sh" || fail "VRAM reporting override missing"
+grep -Fq "MONO_THREADS_SUSPEND" "$ROOT/lib/whisky.sh" || fail "Unity performance environment missing"
 grep -Fq "HelBuflen" "$ROOT/lib/whisky.sh" || fail "audio buffer tuning missing"
 grep -Fq "RetinaMode" "$ROOT/lib/whisky.sh" || fail "Retina handling missing"
 grep -Fq "screenmanagerRegistry" "$ROOT/lib/whisky.sh" || fail "profile-aware registry handling missing"
