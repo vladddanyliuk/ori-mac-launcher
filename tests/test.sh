@@ -26,13 +26,17 @@ grep -Fq 'main "$@"' "$ROOT/ori" || fail "ori does not dispatch main"
 pass "entry point"
 
 echo "[3/8] profile JSON"
-plutil -lint "$ROOT/config/ori.json" >/dev/null || fail "invalid config/ori.json"
-app_id="$(plutil -extract steamAppId raw -o - "$ROOT/config/ori.json")"
-exe="$(plutil -extract executable raw -o - "$ROOT/config/ori.json")"
-renderer="$(plutil -extract preferredRenderer raw -o - "$ROOT/config/ori.json")"
-[[ "$app_id" == "1057090" ]] || fail "wrong Steam App ID: $app_id"
-[[ "$exe" == "oriwotw.exe" ]] || fail "wrong executable: $exe"
-[[ "$renderer" == "DXMT" ]] || fail "wrong preferred renderer: $renderer"
+python3 - "$ROOT/config/ori.json" <<'PY'
+import json, sys
+with open(sys.argv[1], encoding="utf-8") as f:
+    p = json.load(f)
+assert p["steamAppId"] == 1057090
+assert p["executable"] == "oriwotw.exe"
+assert p["preferredRenderer"] == "DXMT"
+assert p["runtimeVersion"] == "3.1.1"
+assert p["preferredRendererVersion"] == "0.80"
+assert p["dllOverrides"] == "dxgi=n,b;d3d10core=n,b;d3d11=n,b;winemetal=b;d3d12="
+PY
 pass "profile"
 
 echo "[4/8] pinned runtime integrity contract"
