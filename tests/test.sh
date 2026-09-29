@@ -36,6 +36,9 @@ assert p["preferredRenderer"] == "DXMT"
 assert p["runtimeVersion"] == "3.1.1"
 assert p["preferredRendererVersion"] == "0.80"
 assert p["dllOverrides"] == "dxgi=n,b;d3d10core=n,b;d3d11=n,b;winemetal=b;d3d12="
+assert p["environment"]["LC_ALL"] == "en_US.UTF-8"
+assert p["environment"]["STEAM_DISABLE_CEF_SANDBOX"] == "1"
+assert p["environment"]["WINHTTP_CONNECT_TIMEOUT"] == "90000"
 PY
 pass "profile"
 
