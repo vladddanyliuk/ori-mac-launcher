@@ -294,10 +294,7 @@ except Exception:
 }
 
 apply_display_tuning() {
-  local pixels width height target_width target_height
-  pixels="$(detect_main_display_pixels || true)"
-  width="${pixels%x*}"
-  height="${pixels#*x}"
+  local target_width target_height
   target_width="$(profile_value display.targetWidth)"
   target_height="$(profile_value display.targetHeight)"
 
