@@ -112,9 +112,24 @@ wine_env() {
   WINEDEBUG="$(profile_value environment.WINEDEBUG)"
   WINEESYNC="$(profile_value environment.WINEESYNC)"
   WINEMSYNC="$(profile_value environment.WINEMSYNC)"
+  LC_ALL="$(profile_value environment.LC_ALL)"
+  LANG="$(profile_value environment.LANG)"
+  LC_TIME="$(profile_value environment.LC_TIME)"
+  LC_NUMERIC="$(profile_value environment.LC_NUMERIC)"
+  CEF_DISABLE_SANDBOX="$(profile_value environment.CEF_DISABLE_SANDBOX)"
+  STEAM_DISABLE_CEF_SANDBOX="$(profile_value environment.STEAM_DISABLE_CEF_SANDBOX)"
+  STEAM_RUNTIME="$(profile_value environment.STEAM_RUNTIME)"
+  WINHTTP_CONNECT_TIMEOUT="$(profile_value environment.WINHTTP_CONNECT_TIMEOUT)"
+  WINHTTP_RECEIVE_TIMEOUT="$(profile_value environment.WINHTTP_RECEIVE_TIMEOUT)"
+  WINE_FORCE_HTTP11="$(profile_value environment.WINE_FORCE_HTTP11)"
+  WINE_MAX_CONNECTIONS_PER_SERVER="$(profile_value environment.WINE_MAX_CONNECTIONS_PER_SERVER)"
   CX_ROOT="$WHISKY_LIBRARIES/Wine"
   PATH="$WHISKY_LIBRARIES/Wine/bin:$PATH"
-  export WINEPREFIX WINEDEBUG WINEESYNC WINEMSYNC CX_ROOT PATH
+  export WINEPREFIX WINEDEBUG WINEESYNC WINEMSYNC
+  export LC_ALL LANG LC_TIME LC_NUMERIC
+  export CEF_DISABLE_SANDBOX STEAM_DISABLE_CEF_SANDBOX STEAM_RUNTIME
+  export WINHTTP_CONNECT_TIMEOUT WINHTTP_RECEIVE_TIMEOUT WINE_FORCE_HTTP11
+  export WINE_MAX_CONNECTIONS_PER_SERVER CX_ROOT PATH
 
   if [[ -d "$WHISKY_LIBRARIES/DXMT" ]]; then
     WINEDLLOVERRIDES="$(profile_value dllOverrides)"
