@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>name</key><string>Ori and the Blind Forest: Definitive Edition</string>
+  <key>slug</key><string>blind-de</string>
+  <key>steamAppId</key><integer>387290</integer>
+  <key>executable</key><string>OriDE.exe</string>
+  <key>screenmanagerRegistry</key><integer>0</integer>
+  <key>registryKey</key><string>HKCU\Software\Microsoft Studios\Ori And The Blind Forest: Definitive Edition</string>
+
+  <key>windowsVersion</key><string>win10</string>
+  <key>runtimeProvider</key><string>frankea/WhiskyWine</string>
+  <key>runtimeVersion</key><string>3.1.1</string>
+  <key>preferredRenderer</key><string>DXMT</string>
+  <key>preferredRendererVersion</key><string>0.80</string>
+  <key>fallbackRenderer</key><string>DXVK</string>
+  <key>fallbackRendererVersion</key><string>1.10.3</string>
+  <key>display</key>
+  <dict>
+    <key>retinaMode</key><string>n</string>
+    <key>dpi</key><integer>96</integer>
+    <key>useNativeResolution</key><integer>0</integer>
+    <key>fullscreenMode</key><integer>0</integer>
+    <key>targetWidth</key><integer>1920</integer>
+    <key>targetHeight</key><integer>1080</integer>
+  </dict>
+  <key>audio</key>
+  <dict>
+    <key>driver</key><string>coreaudio</string>
+    <key>directSoundBuffer</key><integer>131072</integer>
+  </dict>
+  <key>environment</key>
+  <dict>
+    <key>WINEDEBUG</key><string>-all</string>
+    <key>WINEESYNC</key><string>1</string>
+    <key>WINEMSYNC</key><string>0</string>
+    <key>LC_ALL</key><string>en_US.UTF-8</string>
+    <key>LANG</key><string>en_US.UTF-8</string>
+    <key>LC_TIME</key><string>C</string>
+    <key>LC_NUMERIC</key><string>C</string>
+    <key>CEF_DISABLE_SANDBOX</key><string>1</string>
+    <key>STEAM_DISABLE_CEF_SANDBOX</key><string>1</string>
+    <key>STEAM_RUNTIME</key><string>0</string>
+    <key>WINHTTP_CONNECT_TIMEOUT</key><string>90000</string>
+    <key>WINHTTP_RECEIVE_TIMEOUT</key><string>180000</string>
+    <key>WINE_FORCE_HTTP11</key><string>1</string>
+    <key>WINE_MAX_CONNECTIONS_PER_SERVER</key><string>10</string>
+    <key>MVK_CONFIG_LOG_LEVEL</key><string>1</string>
+    <key>D3DM_VALIDATION</key><string>0</string>
+    <key>MTL_DEBUG_LAYER</key><string>0</string>
+    <key>MTL_ENABLE_METAL_EVENTS</key><string>0</string>
+  </dict>
+  <key>dllOverrides</key><string>dxgi=n,b;d3d10core=n,b;d3d11=n,b;winemetal=b;d3d12=</string>
+  <key>steamLaunchMode</key><string>applaunch</string>
+  <key>launchArguments</key><array/>
+
+  <key>knownWorkarounds</key><array>
+    <string>Launch with explicit Unity 1920x1080 fullscreen arguments.</string>
+    <string>Keep Wine Retina mode disabled for the gameplay path.</string>
+    <string>Use DXMT/D3D11 and ESYNC-only scheduling with CoreAudio stable buffering.</string>
+  </array>
+</dict></plist>
