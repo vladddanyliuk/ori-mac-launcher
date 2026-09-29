@@ -13,8 +13,14 @@ WHISKY_SUPPORT="${HOME}/Library/Application Support/${WHISKY_BUNDLE_ID}"
 WHISKY_LIBRARIES="$WHISKY_SUPPORT/Libraries"
 WHISKY_WINE="$WHISKY_LIBRARIES/Wine/bin/wine64"
 WHISKY_WINESERVER="$WHISKY_LIBRARIES/Wine/bin/wineserver"
-WHISKY_VERSION_PLIST_URL="https://frankea.github.io/Whisky/WhiskyWineVersion.plist"
 WHISKY_RELEASE_BASE="https://github.com/frankea/Whisky/releases/download"
+
+# Pinned known upstream runtime metadata from frankea/Whisky.
+# Do not silently float to a newer runtime: reproducibility beats surprise upgrades.
+RUNTIME_VERSION="3.1.1"
+RUNTIME_SHA256="01f3a1b43b98065fe20c529c1023b61dd79a6d2ad93bba6040865f646481ccf3"
+RUNTIME_DXMT_VERSION="0.80"
+RUNTIME_DXVK_VERSION="1.10.3"
 
 ORI_PREFIX="$APP_SUPPORT_DIR/prefix"
 RUNTIME_STATE="$STATE_DIR/runtime.env"
@@ -69,25 +75,12 @@ runtime_is_usable() {
   [[ -f "$WHISKY_LIBRARIES/WhiskyWineVersion.plist" ]]
 }
 
-fetch_runtime_metadata() {
-  local plist="$DOWNLOAD_DIR/WhiskyWineVersion.plist"
-  info "Fetching WhiskyWine runtime metadata..."
-  curl --fail --location --retry 3 --silent --show-error     "$WHISKY_VERSION_PLIST_URL" -o "$plist.tmp"
-  mv "$plist.tmp" "$plist"
-
-  local version sha
-  version="$(plist_value "$plist" version || true)"
-  sha="$(plist_value "$plist" sha256 || true)"
-
-  if [[ -z "$version" ]]; then
-    error "Runtime metadata does not contain a version."
-    exit 4
-  fi
-
-  printf 'RUNTIME_VERSION=%q\n' "$version" > "$RUNTIME_STATE"
-  printf 'RUNTIME_SHA256=%q\n' "$sha" >> "$RUNTIME_STATE"
+write_runtime_state() {
+  printf 'RUNTIME_VERSION=%q\n' "$RUNTIME_VERSION" > "$RUNTIME_STATE"
+  printf 'RUNTIME_SHA256=%q\n' "$RUNTIME_SHA256" >> "$RUNTIME_STATE"
+  printf 'RUNTIME_DXMT_VERSION=%q\n' "$RUNTIME_DXMT_VERSION" >> "$RUNTIME_STATE"
+  printf 'RUNTIME_DXVK_VERSION=%q\n' "$RUNTIME_DXVK_VERSION" >> "$RUNTIME_STATE"
 }
-
 load_runtime_state() {
   if [[ -f "$RUNTIME_STATE" ]]; then
     # shellcheck disable=SC1090
@@ -100,7 +93,7 @@ sha256_file() {
 }
 
 install_runtime_headless() {
-  fetch_runtime_metadata
+  write_runtime_state
   load_runtime_state
 
   local archive="$DOWNLOAD_DIR/Libraries-${RUNTIME_VERSION}.tar.gz"
@@ -115,7 +108,10 @@ install_runtime_headless() {
   if [[ -n "${RUNTIME_SHA256:-}" ]]; then
     local actual
     actual="$(sha256_file "$archive")"
-    if [[ "${actual,,}" != "${RUNTIME_SHA256,,}" ]]; then
+    actual="$(printf '%s' "$actual" | tr '[:upper:]' '[:lower:]')"
+    local expected
+    expected="$(printf '%s' "$RUNTIME_SHA256" | tr '[:upper:]' '[:lower:]')"
+    if [[ "$actual" != "$expected" ]]; then
       rm -f "$archive"
       error "WhiskyWine checksum mismatch."
       error "Expected: $RUNTIME_SHA256"
@@ -155,10 +151,8 @@ wine_env() {
   export CX_ROOT="$WHISKY_LIBRARIES/Wine"
   export PATH="$WHISKY_LIBRARIES/Wine/bin:$PATH"
 
-  # Prefer DXMT for DX11 when present. WhiskyWine ships the payload and Wine
-  # can resolve its native D3D DLLs from the runtime.
   if [[ -d "$WHISKY_LIBRARIES/DXMT" ]]; then
-    export WINEDLLOVERRIDES="d3d11,dxgi=n,b;${WINEDLLOVERRIDES:-}"
+    export WINEDLLOVERRIDES="dxgi=n,b;d3d10core=n,b;d3d11=n,b;winemetal=b;d3d12=;${WINEDLLOVERRIDES:-}"
   fi
 }
 
@@ -174,12 +168,47 @@ wineserver_wait() {
 
 prefix_is_initialized() {
   [[ -f "$ORI_PREFIX/system.reg" ]] &&
-  [[ -d "$ORI_PREFIX/drive_c/windows" ]]
+  [[ -d "$ORI_PREFIX/drive_c/windows/system32" ]]
+}
+
+deploy_dxmt() {
+  local payload="$WHISKY_LIBRARIES/DXMT"
+  local system32="$ORI_PREFIX/drive_c/windows/system32"
+  local syswow64="$ORI_PREFIX/drive_c/windows/syswow64"
+  local dll
+
+  [[ -d "$payload/x64" ]] || {
+    error "Pinned runtime is missing the DXMT x64 payload."
+    exit 5
+  }
+
+  for dll in d3d11.dll dxgi.dll d3d10core.dll winemetal.dll; do
+    [[ -f "$payload/x64/$dll" ]] || {
+      error "DXMT payload is incomplete: missing x64/$dll"
+      exit 5
+    }
+    cp -f "$payload/x64/$dll" "$system32/$dll"
+  done
+
+  if [[ -d "$syswow64" && -d "$payload/x32" ]]; then
+    for dll in d3d11.dll dxgi.dll d3d10core.dll winemetal.dll; do
+      [[ -f "$payload/x32/$dll" ]] || {
+        error "DXMT payload is incomplete: missing x32/$dll"
+        exit 5
+      }
+      cp -f "$payload/x32/$dll" "$syswow64/$dll"
+    done
+  fi
+
+  printf 'DXMT_VERSION=%q\n' "$RUNTIME_DXMT_VERSION" > "$STATE_DIR/dxmt.env"
 }
 
 ensure_ori_bottle() {
   mkdir -p "$ORI_PREFIX"
   if prefix_is_initialized; then
+    if [[ ! -f "$STATE_DIR/dxmt.env" ]]; then
+      deploy_dxmt
+    fi
     return 0
   fi
 
@@ -192,6 +221,8 @@ ensure_ori_bottle() {
     error "Wine prefix initialization failed."
     exit 5
   }
+
+  deploy_dxmt
 
   # Windows 10 mode. Ignore failure here only if the runtime does not expose winecfg
   # as a separate executable; Wine defaults are still usable.
