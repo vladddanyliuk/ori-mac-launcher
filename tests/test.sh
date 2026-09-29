@@ -39,12 +39,16 @@ assert p["dllOverrides"] == "dxgi=n,b;d3d10core=n,b;d3d11=n,b;winemetal=b;d3d12=
 assert p["environment"]["LC_ALL"] == "en_US.UTF-8"
 assert p["environment"]["STEAM_DISABLE_CEF_SANDBOX"] == "1"
 assert p["environment"]["WINHTTP_CONNECT_TIMEOUT"] == "90000"
-assert p["display"]["retinaMode"] == "y"
-assert p["display"]["dpi"] == 192
-assert p["display"]["useNativeResolution"] == 1
-assert p["display"]["fullscreenMode"] == 1
+assert p["display"]["retinaMode"] == "n"
+assert p["display"]["dpi"] == 96
+assert p["display"]["useNativeResolution"] == 0
+assert p["display"]["fullscreenMode"] == 0
+assert p["display"]["targetWidth"] == 2560
+assert p["display"]["targetHeight"] == 1440
 assert p["audio"]["driver"] == "coreaudio"
 assert p["audio"]["directSoundBuffer"] == 131072
+assert p["environment"]["WINEESYNC"] == "1"
+assert p["environment"]["WINEMSYNC"] == "0"
 assert p["environment"]["MVK_CONFIG_LOG_LEVEL"] == "1"
 PY
 pass "profile"
@@ -181,9 +185,11 @@ pass "Steam installer validation"
 
 echo "[12/13] Mac tuning contract"
 grep -Fq "apply_game_tuning" "$ROOT/ori" || fail "launcher does not apply game tuning"
-grep -Fq "RetinaMode" "$ROOT/lib/whisky.sh" || fail "Retina tuning missing"
+grep -Fq "RetinaMode" "$ROOT/lib/whisky.sh" || fail "Retina registry handling missing"
 grep -Fq "HelBuflen" "$ROOT/lib/whisky.sh" || fail "audio buffer tuning missing"
-grep -Fq "Screenmanager Resolution Use Native_h1405027254" "$ROOT/lib/whisky.sh" || fail "native Ori resolution tuning missing"
+grep -Fq "Screenmanager Resolution Use Native_h1405027254" "$ROOT/lib/whisky.sh" || fail "Ori resolution tuning missing"
+grep -Fq "Screenmanager Fullscreen mode_h3630240806" "$ROOT/lib/whisky.sh" || fail "Ori fullscreen tuning missing"
+grep -Fq "TUNING_SCHEMA_VERSION=\"3\"" "$ROOT/lib/whisky.sh" || fail "tuning schema not bumped"
 pass "Mac tuning contract"
 
 echo "[13/13] secret/logging safety"
