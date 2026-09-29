@@ -1,6 +1,6 @@
 # Ori Mac Launcher
 
-A tiny game-specific compatibility launcher for **Ori and the Will of the Wisps** on Apple Silicon macOS.
+A game-specific compatibility launcher for **Ori and the Will of the Wisps** on Apple Silicon macOS.
 
 ## Quick start
 
@@ -10,11 +10,18 @@ cd ori-mac-launcher
 ./ori
 ```
 
-That is the public contract: **one command** for bootstrap and later launches.
+**That is the entire setup/launch interface.** The same command bootstraps the runtime on a fresh Mac and launches Ori on later runs.
 
-On the first run OriMac provisions its runtime, creates an isolated `OriMac` bottle and installs the Windows Steam client. Steam login and installing the game are still normal interactive Steam UI steps. After Ori is installed, `./ori` launches Steam App ID `1057090` directly.
+OriMac performs these steps automatically:
+1. checks Apple Silicon/macOS/Rosetta;
+2. installs the maintained Whisky app if its runtime is not present;
+3. downloads and verifies the WhiskyWine runtime metadata/archive;
+4. creates a private Wine prefix under OriMac's own Application Support folder;
+5. installs the Windows Steam client;
+6. opens Steam for the unavoidable account sign-in/game purchase/install UI;
+7. once App ID `1057090` is installed, launches Ori directly on subsequent `./ori` runs.
 
-> Current MVP note: the selected Whisky runtime requires its GUI to finish the initial bottle bootstrap once. `./ori` opens it automatically and waits. We are keeping the command contract stable while we remove this runtime limitation.
+There is no first-run Whisky GUI/bottle setup dependency.
 
 ## Commands
 
@@ -23,26 +30,37 @@ On the first run OriMac provisions its runtime, creates an isolated `OriMac` bot
 ./ori --steam    open Windows Steam
 ./ori --doctor   diagnostics
 ./ori --logs     reveal logs
-./ori --reset    delete the managed Ori bottle after confirmation
+./ori --reset    delete only OriMac's private prefix after confirmation
 ```
 
 ## Data locations
 
 ```text
 ~/Library/Application Support/OriMac/
+├── prefix/
+├── downloads/
+├── state/
+└── config/
+
 ~/Library/Logs/OriMac/
 ```
 
-The macOS Steam installation is not modified.
+OriMac never edits the native macOS Steam installation.
+
+The shared WhiskyWine runtime is stored by its upstream provider under:
+
+```text
+~/Library/Application Support/com.franke.Whisky/Libraries/
+```
 
 ## Requirements
 
 - Apple Silicon Mac
-- macOS Sonoma 14 or newer
+- macOS Sequoia 15 or newer
 - Internet connection
-- A Steam account that owns Ori and the Will of the Wisps
+- Steam account that owns Ori and the Will of the Wisps
 
-Rosetta and the runtime are handled by the bootstrap flow. Homebrew is currently used for runtime provisioning; if it is missing, `./ori` asks before installing it.
+Rosetta is installed by macOS when required. Homebrew is used only to install the signed/notarized maintained Whisky application; OriMac provisions the Wine runtime itself without requiring the Whisky GUI.
 
 ## Development
 
@@ -50,4 +68,4 @@ Rosetta and the runtime are handled by the bootstrap flow. Homebrew is currently
 ./tests/test.sh
 ```
 
-See `docs/runtime.md` for the runtime boundary and known first-run limitation.
+CI validates shell syntax, ShellCheck, state-machine decisions, manifest parsing and safety invariants. Real gameplay validation is tracked separately because GitHub's CI runners cannot interactively sign into Steam or play the game.
