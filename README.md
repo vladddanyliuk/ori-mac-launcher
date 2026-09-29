@@ -29,6 +29,7 @@ There is no first-run Whisky GUI/bottle setup dependency.
 ./ori            bootstrap / launch Ori
 ./ori --steam    open Windows Steam
 ./ori --doctor   diagnostics
+./ori --self-test validate Wine + DXMT without Steam login
 ./ori --logs     reveal logs
 ./ori --reset    delete only OriMac's private prefix after confirmation
 ```
@@ -47,10 +48,10 @@ There is no first-run Whisky GUI/bottle setup dependency.
 
 OriMac never edits the native macOS Steam installation.
 
-The shared WhiskyWine runtime is stored by its upstream provider under:
+The pinned runtime is private to OriMac:
 
 ```text
-~/Library/Application Support/com.franke.Whisky/Libraries/
+~/Library/Application Support/OriMac/runtime/Libraries/
 ```
 
 ## Requirements
@@ -60,7 +61,7 @@ The shared WhiskyWine runtime is stored by its upstream provider under:
 - Internet connection
 - Steam account that owns Ori and the Will of the Wisps
 
-Rosetta is installed by macOS when required. Homebrew is used only to install the signed/notarized maintained Whisky application; OriMac provisions the Wine runtime itself without requiring the Whisky GUI.
+Rosetta is installed by macOS when required. No Homebrew or Whisky GUI is required. OriMac downloads the pinned runtime archive directly and keeps it inside its own Application Support directory.
 
 ## Development
 
