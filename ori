@@ -17,14 +17,35 @@ usage() {
 Ori Mac Launcher
 
 Usage:
-  ./ori              Bootstrap if needed, then launch Ori
-  ./ori --steam      Open Windows Steam in the Ori bottle
+  ./ori              Auto-detect an installed Ori game and launch it
+  ./ori blind        Launch Ori and the Blind Forest
+  ./ori blind-de     Launch Ori and the Blind Forest: Definitive Edition
+  ./ori wotw         Launch Ori and the Will of the Wisps
+  ./ori --steam      Open Windows Steam
   ./ori --doctor     Print diagnostics
   ./ori --self-test  Validate runtime/prefix without Steam login
   ./ori --logs       Reveal log directory in Finder
   ./ori --reset      Reset the Ori bottle after confirmation
   ./ori --help       Show this help
 TXT
+}
+
+run_game() {
+  local requested="${1:-}"
+
+  platform_check
+  ensure_runtime
+  ensure_ori_bottle
+  ensure_steam
+  select_game_for_run "$requested" || exit $?
+  apply_game_tuning
+
+  if ! ori_is_installed; then
+    warn "$GAME_NAME is not installed yet."
+    ensure_ori_installed_interactive || exit $?
+  fi
+
+  launch_ori || exit $?
 }
 
 main() {
@@ -36,23 +57,24 @@ main() {
   local command="${1:-run}"
   case "$command" in
     run)
-      platform_check
-      ensure_runtime
-      ensure_ori_bottle
-      apply_game_tuning
-      ensure_steam
-      if ! ori_is_installed; then
-        warn "Ori and the Will of the Wisps is not installed yet."
-        ensure_ori_installed_interactive || exit $?
-      fi
-      launch_ori || exit $?
+      run_game ""
+      ;;
+    blind|first|261570)
+      run_game "blind"
+      ;;
+    blind-de|de|definitive|387290)
+      run_game "blind-de"
+      ;;
+    wotw|wisps|1057090)
+      run_game "wotw"
       ;;
     --steam)
       platform_check
       ensure_runtime
       ensure_ori_bottle
-      apply_game_tuning
       ensure_steam
+      select_installed_game 1 || true
+      apply_game_tuning
       launch_steam
       ;;
     --doctor)
@@ -62,6 +84,7 @@ main() {
       platform_check
       ensure_runtime
       ensure_ori_bottle
+      select_installed_game 1 || true
       apply_game_tuning
       runtime_self_test
       ;;
