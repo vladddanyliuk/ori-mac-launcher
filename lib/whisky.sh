@@ -12,7 +12,7 @@ RUNTIME_SHA256="01f3a1b43b98065fe20c529c1023b61dd79a6d2ad93bba6040865f646481ccf3
 RUNTIME_DXMT_VERSION="0.80"
 RUNTIME_DXVK_VERSION="1.10.3"
 PREFIX_SCHEMA_VERSION="1"
-TUNING_SCHEMA_VERSION="5"
+TUNING_SCHEMA_VERSION="6"
 
 ORI_RUNTIME_DIR="$APP_SUPPORT_DIR/runtime"
 WHISKY_LIBRARIES="$ORI_RUNTIME_DIR/Libraries"
@@ -304,14 +304,21 @@ apply_display_tuning() {
   # Avoid Wine's virtual desktop: it can make a native game look like a streamed/scaled surface.
   wine_run reg delete 'HKCU\Software\Wine\Explorer' /v Desktop /f >/dev/null 2>&1 || true
 
-  local uses_registry game_key
+  local uses_registry game_key width_key height_key fullscreen_key native_key monitor_key
   uses_registry="$(profile_value screenmanagerRegistry 2>/dev/null || echo 0)"
   if [[ "$uses_registry" == "1" ]]; then
     game_key="$(profile_value registryKey)"
-    wine_run reg add "$game_key" /v 'Screenmanager Resolution Use Native_h1405027254' /t REG_DWORD /d "$(profile_value display.useNativeResolution)" /f >/dev/null
-    wine_run reg add "$game_key" /v 'Screenmanager Fullscreen mode_h3630240806' /t REG_DWORD /d "$(profile_value display.fullscreenMode)" /f >/dev/null
-    wine_run reg add "$game_key" /v 'Screenmanager Resolution Width_h182942802' /t REG_DWORD /d "$target_width" /f >/dev/null
-    wine_run reg add "$game_key" /v 'Screenmanager Resolution Height_h2627697771' /t REG_DWORD /d "$target_height" /f >/dev/null
+    width_key="$(profile_value screenWidthRegistryName 2>/dev/null || true)"
+    height_key="$(profile_value screenHeightRegistryName 2>/dev/null || true)"
+    fullscreen_key="$(profile_value fullscreenRegistryName 2>/dev/null || true)"
+    native_key="$(profile_value useNativeRegistryName 2>/dev/null || true)"
+    monitor_key="$(profile_value monitorRegistryName 2>/dev/null || true)"
+
+    [[ -n "$width_key" ]] && wine_run reg add "$game_key" /v "$width_key" /t REG_DWORD /d "$target_width" /f >/dev/null
+    [[ -n "$height_key" ]] && wine_run reg add "$game_key" /v "$height_key" /t REG_DWORD /d "$target_height" /f >/dev/null
+    [[ -n "$fullscreen_key" ]] && wine_run reg add "$game_key" /v "$fullscreen_key" /t REG_DWORD /d "$(profile_value display.fullscreenMode)" /f >/dev/null
+    [[ -n "$native_key" ]] && wine_run reg add "$game_key" /v "$native_key" /t REG_DWORD /d "$(profile_value display.useNativeResolution)" /f >/dev/null
+    [[ -n "$monitor_key" ]] && wine_run reg add "$game_key" /v "$monitor_key" /t REG_DWORD /d 0 /f >/dev/null
   fi
 }
 
@@ -346,7 +353,9 @@ apply_game_tuning() {
     info "Resetting cached Wine audio devices for the new tuning profile..."
     wine_run reg delete 'HKLM\Software\Microsoft\Windows\CurrentVersion\MMDevices' /f >/dev/null 2>&1 || true
 
-    info "Applied $GAME_NAME profile: $(profile_value display.targetWidth)x$(profile_value display.targetHeight) fullscreen + CoreAudio stable buffer + ESYNC."
+    local sync_label="ESYNC"
+    [[ "$(profile_value environment.WINEMSYNC)" == "1" ]] && sync_label="MSYNC (with ESYNC)"
+    info "Applied $GAME_NAME profile: $(profile_value display.targetWidth)x$(profile_value display.targetHeight) fullscreen + CoreAudio stable buffer + $sync_label."
     wine_env
     "$WHISKY_WINESERVER" -k >/dev/null 2>&1 || true
     "$WHISKY_WINESERVER" -w >/dev/null 2>&1 || true
