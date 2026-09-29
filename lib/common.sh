@@ -7,8 +7,15 @@ DOWNLOAD_DIR="$APP_SUPPORT_DIR/downloads"
 CONFIG_DIR="$APP_SUPPORT_DIR/config"
 LOG_DIR="${HOME}/Library/Logs/${APP_NAME}"
 CURRENT_LOG="$LOG_DIR/ori.log"
-BOTTLE_NAME="OriMac"
-ORI_APP_ID="1057090"
+GAME_PROFILE="$ROOT_DIR/config/ori.json"
+
+profile_value() {
+  local key="$1"
+  /usr/bin/plutil -extract "$key" raw -o - "$GAME_PROFILE" 2>/dev/null
+}
+
+ORI_APP_ID="$(profile_value steamAppId)"
+ORI_EXE="$(profile_value executable)"
 
 init_paths() {
   mkdir -p "$STATE_DIR" "$DOWNLOAD_DIR" "$CONFIG_DIR" "$LOG_DIR"
@@ -33,10 +40,13 @@ on_error() {
   error "Log: $CURRENT_LOG"
 }
 
-command_exists() { command -v "$1" >/dev/null 2>&1; }
+command_exists() {
+  command -v "$1" >/dev/null 2>&1
+}
 
 confirm() {
   local prompt="${1:-Continue?}"
+  local answer=""
   read -r -p "$prompt [y/N] " answer
   [[ "$answer" =~ ^[Yy]$ ]]
 }
