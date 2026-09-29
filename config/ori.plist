@@ -19,8 +19,8 @@
     <key>dpi</key><integer>96</integer>
     <key>useNativeResolution</key><integer>0</integer>
     <key>fullscreenMode</key><integer>0</integer>
-    <key>targetWidth</key><integer>2560</integer>
-    <key>targetHeight</key><integer>1440</integer>
+    <key>targetWidth</key><integer>1920</integer>
+    <key>targetHeight</key><integer>1080</integer>
   </dict>
 
   <key>audio</key>
@@ -58,9 +58,9 @@
 
   <key>knownWorkarounds</key>
   <array>
-    <string>Disable Wine RetinaMode for Ori to avoid hidden 2x backing-pixel rendering overhead; use an explicit 2560x1440 game render target instead.</string>
-    <string>Use Ori exclusive fullscreen with Use Native disabled and an explicit 2560x1440 render target for M-series MacBook Air performance.</string>
-    <string>Force CoreAudio with the stable 131072-byte DirectSound buffer to reduce crackling/stutter; use ESYNC without conflicting MSYNC.</string>
+    <string>Disable Wine RetinaMode for Ori to avoid hidden 2x backing-pixel rendering overhead; force 1920x1080 through Unity command-line arguments and registry.</string>
+    <string>Use Ori exclusive fullscreen with Use Native disabled and an explicit 1920x1080 render target as the stable Apple-silicon baseline.</string>
+    <string>Force CoreAudio with the stable 131072-byte DirectSound buffer to reduce crackling/stutter; reset cached Wine audio devices when tuning changes; use ESYNC without conflicting MSYNC.</string>
     <string>Use DXMT as the default DirectX 11 backend; DXMT v0.73 fixed Ori's historical missing-character rendering bug.</string>
     <string>Apply Steam Chromium locale and sandbox compatibility environment inherited from maintained Whisky launcher presets.</string>
     <string>Keep Ori in the dedicated prefix; do not reuse the native macOS Steam installation.</string>
