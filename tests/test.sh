@@ -14,18 +14,18 @@ pass() {
   printf 'PASS: %s\n' "$*"
 }
 
-echo "[1/13] shell syntax"
+echo "[1/14] shell syntax"
 for file in "$ROOT/ori" "$ROOT"/lib/*.sh "$ROOT/tests/test.sh"; do
   bash -n "$file" || fail "syntax: $file"
 done
 pass "shell syntax"
 
-echo "[2/13] executable entry point"
+echo "[2/14] executable entry point"
 [[ -x "$ROOT/ori" ]] || fail "ori is not executable"
 grep -Fq 'main "$@"' "$ROOT/ori" || fail "ori does not dispatch main"
 pass "entry point"
 
-echo "[3/13] profile JSON"
+echo "[3/14] profile JSON"
 python3 - "$ROOT/config/ori.plist" <<'PY'
 import plistlib, sys
 with open(sys.argv[1], "rb") as f:
@@ -53,20 +53,20 @@ assert p["environment"]["MVK_CONFIG_LOG_LEVEL"] == "1"
 PY
 pass "profile"
 
-echo "[4/13] pinned runtime integrity contract"
+echo "[4/14] pinned runtime integrity contract"
 grep -Fq 'RUNTIME_VERSION="3.1.1"' "$ROOT/lib/whisky.sh" || fail "runtime is not pinned"
 grep -Fq 'RUNTIME_SHA256="01f3a1b43b98065fe20c529c1023b61dd79a6d2ad93bba6040865f646481ccf3"' "$ROOT/lib/whisky.sh" || fail "runtime checksum is not pinned"
 grep -Fq 'sha256_file "$archive"' "$ROOT/lib/whisky.sh" || fail "runtime archive is not hashed"
 pass "runtime pin"
 
-echo "[5/13] path safety"
+echo "[5/14] path safety"
 grep -Fq 'rm -rf "$ORI_PREFIX"' "$ROOT/lib/whisky.sh" || fail "prefix reset is not explicitly scoped"
 if grep -REn 'rm[[:space:]]+-rf[[:space:]]+(")?(~|\$HOME)(/|["[:space:]]|$)' "$ROOT/lib" "$ROOT/ori"; then
   fail "broad home-directory deletion found"
 fi
 pass "path safety"
 
-echo "[6/13] Steam manifest parsing fixture"
+echo "[6/14] Steam manifest parsing fixture"
 fixture="$TMP/appmanifest_1057090.acf"
 cat > "$fixture" <<'EOF'
 "AppState"
@@ -81,7 +81,7 @@ install_dir="$(awk -F'"' '/"installdir"/ {print $4; exit}' "$fixture")"
 [[ "$install_dir" == "Ori and the Will of the Wisps" ]] || fail "install-dir parser"
 pass "Steam manifest"
 
-echo "[7/13] one-command README contract"
+echo "[7/14] one-command README contract"
 grep -Fq 'git clone https://github.com/vladddanyliuk/ori-mac-launcher.git' "$ROOT/README.md" || fail "README clone command missing"
 grep -Fq './ori' "$ROOT/README.md" || fail "README ./ori command missing"
 if grep -Eq 'brew install|open -a Whisky|chmod \+x' "$ROOT/README.md"; then
@@ -89,7 +89,7 @@ if grep -Eq 'brew install|open -a Whisky|chmod \+x' "$ROOT/README.md"; then
 fi
 pass "one-command README"
 
-echo "[8/13] bootstrap idempotence decisions"
+echo "[8/14] bootstrap idempotence decisions"
 (
   APP_SUPPORT_DIR="$TMP/App Support/OriMac"
   STATE_DIR="$APP_SUPPORT_DIR/state"
@@ -117,7 +117,7 @@ echo "[8/13] bootstrap idempotence decisions"
 ) || fail "runtime idempotence"
 pass "runtime idempotence"
 
-echo "[9/13] prefix schema state"
+echo "[9/14] prefix schema state"
 (
   APP_SUPPORT_DIR="$TMP/Prefix Test/OriMac"
   STATE_DIR="$APP_SUPPORT_DIR/state"
@@ -138,7 +138,7 @@ echo "[9/13] prefix schema state"
 ) || fail "prefix schema"
 pass "prefix schema"
 
-echo "[10/13] path construction with spaces"
+echo "[10/14] path construction with spaces"
 (
   APP_SUPPORT_DIR="$TMP/Path With Spaces/OriMac"
   STATE_DIR="$APP_SUPPORT_DIR/state"
@@ -156,7 +156,7 @@ echo "[10/13] path construction with spaces"
 ) || fail "path construction"
 pass "path construction"
 
-echo "[11/13] Steam installer fixture validation"
+echo "[11/14] Steam installer fixture validation"
 (
   APP_SUPPORT_DIR="$TMP/Steam Test/OriMac"
   STATE_DIR="$APP_SUPPORT_DIR/state"
@@ -183,7 +183,7 @@ echo "[11/13] Steam installer fixture validation"
 ) || fail "Steam installer validation"
 pass "Steam installer validation"
 
-echo "[12/13] Mac tuning contract"
+echo "[12/14] Mac tuning contract"
 grep -Fq "apply_game_tuning" "$ROOT/ori" || fail "launcher does not apply game tuning"
 grep -Fq "RetinaMode" "$ROOT/lib/whisky.sh" || fail "Retina registry handling missing"
 grep -Fq "HelBuflen" "$ROOT/lib/whisky.sh" || fail "audio buffer tuning missing"
@@ -192,7 +192,13 @@ grep -Fq "Screenmanager Fullscreen mode_h3630240806" "$ROOT/lib/whisky.sh" || fa
 grep -Fq "TUNING_SCHEMA_VERSION=\"3\"" "$ROOT/lib/whisky.sh" || fail "tuning schema not bumped"
 pass "Mac tuning contract"
 
-echo "[13/13] secret/logging safety"
+echo "[13/14] Steam library detection contract"
+grep -Fq 'ori_manifest_path()' "$ROOT/lib/steam.sh" || fail "dynamic Ori manifest detection missing"
+grep -Fq 'find "$ORI_PREFIX/drive_c"' "$ROOT/lib/steam.sh" || fail "alternate Steam library search missing"
+grep -Fq 'ori_executable_path()' "$ROOT/lib/steam.sh" || fail "Ori executable diagnostics missing"
+pass "Steam library detection contract"
+
+echo "[14/14] secret/logging safety"
 if grep -REni '(steamloginsecure|refresh[_-]?token|access[_-]?token|password|passwd).*(echo|printf)' "$ROOT/lib" "$ROOT/ori"; then
   fail "possible secret logging"
 fi
