@@ -19,8 +19,8 @@ OriMac performs these steps automatically:
 4. creates a private Wine prefix and deploys DXMT `0.80` for DirectX 11 → Metal;
 5. installs the Windows Steam client;
 6. opens Steam for the unavoidable account sign-in/game purchase/install UI;
-7. auto-detects the Mac's main display backing-pixel resolution and enables Wine Retina HiDPI (192 DPI);
-8. applies Ori borderless/native-resolution settings plus a CoreAudio stability buffer;
+7. detects the Mac display for diagnostics, but runs Ori with an explicit 2560×1440 game render target instead of hidden Retina 2× rendering;
+8. applies Ori exclusive fullscreen, CoreAudio stable buffering and ESYNC-only frame scheduling;
 9. once App ID `1057090` is installed, launches Ori directly on subsequent `./ori` runs.
 
 There is no first-run Whisky GUI/bottle setup dependency.
@@ -65,7 +65,7 @@ The pinned runtime is private to OriMac:
 
 Rosetta is installed by macOS when required. No Homebrew or Whisky GUI is required. OriMac downloads the pinned runtime archive directly and keeps it inside its own Application Support directory.
 
-For Retina Macs, OriMac enables Wine `RetinaMode=y` with 192 DPI, disables Wine virtual-desktop scaling, asks Ori to use the native display resolution in borderless fullscreen, and pins Wine audio to CoreAudio with a stability-oriented DirectSound buffer. These settings are re-applied at launch because Unity may rewrite its Screenmanager registry values.
+For the current Apple-silicon laptop profile, OriMac disables Wine Retina backing-pixel doubling and uses a fixed 2560×1440 game target in exclusive fullscreen. This avoids the misleading low logical resolution + hidden 2× render cost that can make the game look scaled while running much heavier than the menu value suggests. Wine uses ESYNC without a conflicting MSYNC flag, and audio is pinned to CoreAudio with a stability-oriented DirectSound buffer. These settings are re-applied at launch because Unity may rewrite its Screenmanager registry values.
 
 ## Development
 
