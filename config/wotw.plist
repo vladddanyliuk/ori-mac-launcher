@@ -6,6 +6,10 @@
   <key>slug</key><string>wotw</string>
   <key>screenmanagerRegistry</key><integer>1</integer>
   <key>registryKey</key><string>HKCU\Software\Moon Studios\OriAndTheWilloftheWisps</string>
+  <key>screenWidthRegistryName</key><string>Screenmanager Resolution Width_h182942802</string>
+  <key>screenHeightRegistryName</key><string>Screenmanager Resolution Height_h2627697771</string>
+  <key>fullscreenRegistryName</key><string>Screenmanager Fullscreen mode_h3630240806</string>
+  <key>useNativeRegistryName</key><string>Screenmanager Resolution Use Native_h1405027254</string>
   <key>steamAppId</key><integer>1057090</integer>
   <key>executable</key><string>oriwotw.exe</string>
   <key>windowsVersion</key><string>win10</string>
