@@ -19,7 +19,9 @@ OriMac performs these steps automatically:
 4. creates a private Wine prefix and deploys DXMT `0.80` for DirectX 11 → Metal;
 5. installs the Windows Steam client;
 6. opens Steam for the unavoidable account sign-in/game purchase/install UI;
-7. once App ID `1057090` is installed, launches Ori directly on subsequent `./ori` runs.
+7. auto-detects the Mac's main display backing-pixel resolution and enables Wine Retina HiDPI (192 DPI);
+8. applies Ori borderless/native-resolution settings plus a CoreAudio stability buffer;
+9. once App ID `1057090` is installed, launches Ori directly on subsequent `./ori` runs.
 
 There is no first-run Whisky GUI/bottle setup dependency.
 
@@ -62,6 +64,8 @@ The pinned runtime is private to OriMac:
 - Steam account that owns Ori and the Will of the Wisps
 
 Rosetta is installed by macOS when required. No Homebrew or Whisky GUI is required. OriMac downloads the pinned runtime archive directly and keeps it inside its own Application Support directory.
+
+For Retina Macs, OriMac enables Wine `RetinaMode=y` with 192 DPI, disables Wine virtual-desktop scaling, asks Ori to use the native display resolution in borderless fullscreen, and pins Wine audio to CoreAudio with a stability-oriented DirectSound buffer. These settings are re-applied at launch because Unity may rewrite its Screenmanager registry values.
 
 ## Development
 
