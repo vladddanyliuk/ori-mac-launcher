@@ -27,8 +27,9 @@ warn() { printf '[%s] [WARN] %s\n' "$(_ts)" "$*" >&2; }
 error() { printf '[%s] [ERROR] %s\n' "$(_ts)" "$*" >&2; }
 
 on_error() {
-  local code="$1" line="$2"
-  error "Command failed at line $line (exit $code)."
+  local code="$1" line="$2" command="${3:-unknown}"
+  command="${command//$HOME/~}"
+  error "Command failed at line $line (exit $code): $command"
   error "Log: $CURRENT_LOG"
 }
 
