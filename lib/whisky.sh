@@ -108,14 +108,14 @@ ensure_runtime() {
 
 wine_env() {
   export WINEPREFIX="$ORI_PREFIX"
-  export WINEDEBUG="${WINEDEBUG:--all}"
-  export WINEESYNC=1
-  export WINEMSYNC=1
+  export WINEDEBUG="$(profile_value environment.WINEDEBUG)"
+  export WINEESYNC="$(profile_value environment.WINEESYNC)"
+  export WINEMSYNC="$(profile_value environment.WINEMSYNC)"
   export CX_ROOT="$WHISKY_LIBRARIES/Wine"
   export PATH="$WHISKY_LIBRARIES/Wine/bin:$PATH"
 
   if [[ -d "$WHISKY_LIBRARIES/DXMT" ]]; then
-    export WINEDLLOVERRIDES="dxgi=n,b;d3d10core=n,b;d3d11=n,b;winemetal=b;d3d12=;${WINEDLLOVERRIDES:-}"
+    export WINEDLLOVERRIDES="$(profile_value dllOverrides);${WINEDLLOVERRIDES:-}"
   fi
 }
 
