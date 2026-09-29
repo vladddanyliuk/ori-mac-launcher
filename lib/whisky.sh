@@ -11,6 +11,7 @@ RUNTIME_VERSION="3.1.1"
 RUNTIME_SHA256="01f3a1b43b98065fe20c529c1023b61dd79a6d2ad93bba6040865f646481ccf3"
 RUNTIME_DXMT_VERSION="0.80"
 RUNTIME_DXVK_VERSION="1.10.3"
+PREFIX_SCHEMA_VERSION="1"
 
 ORI_RUNTIME_DIR="$APP_SUPPORT_DIR/runtime"
 WHISKY_LIBRARIES="$ORI_RUNTIME_DIR/Libraries"
@@ -124,6 +125,20 @@ wine_run() {
   "$WHISKY_WINE" "$@"
 }
 
+wine_program() {
+  local executable="$1"
+  shift
+  wine_env
+  "$WHISKY_WINE" start /unix "$executable" "$@"
+}
+
+wine_program_wait() {
+  local executable="$1"
+  shift
+  wine_env
+  "$WHISKY_WINE" start /wait /unix "$executable" "$@"
+}
+
 wineserver_wait() {
   wine_env
   "$WHISKY_WINESERVER" -w
@@ -132,6 +147,34 @@ wineserver_wait() {
 prefix_is_initialized() {
   [[ -f "$ORI_PREFIX/system.reg" ]] &&
   [[ -d "$ORI_PREFIX/drive_c/windows/system32" ]]
+}
+
+prefix_state_version() {
+  local state="$STATE_DIR/prefix.env"
+  [[ -f "$state" ]] || return 1
+  awk -F= '/^PREFIX_VERSION=/ {print $2; exit}' "$state"
+}
+
+validate_prefix_schema() {
+  if ! prefix_is_initialized; then
+    return 0
+  fi
+
+  local existing
+  existing="$(prefix_state_version 2>/dev/null || true)"
+
+  # A prefix created before schema tracking is compatible with schema v1 and can
+  # be adopted without deleting Steam/game data.
+  if [[ -z "$existing" ]]; then
+    printf 'PREFIX_VERSION=%s\n' "$PREFIX_SCHEMA_VERSION" > "$STATE_DIR/prefix.env"
+    return 0
+  fi
+
+  if [[ "$existing" != "$PREFIX_SCHEMA_VERSION" ]]; then
+    error "Prefix schema $existing is incompatible with launcher schema $PREFIX_SCHEMA_VERSION."
+    error "Run ./ori --reset to rebuild the isolated Ori prefix."
+    exit 5
+  fi
 }
 
 deploy_dxmt() {
@@ -168,6 +211,7 @@ deploy_dxmt() {
 
 ensure_ori_bottle() {
   mkdir -p "$ORI_PREFIX"
+  validate_prefix_schema
 
   if prefix_is_initialized; then
     # Re-deploy when the pinned runtime/backend version changes.
@@ -198,7 +242,7 @@ ensure_ori_bottle() {
   # Keep the prefix in Windows 10 compatibility mode.
   wine_run reg add 'HKCU\\Software\\Wine' /v Version /d win10 /f >/dev/null 2>&1 || true
 
-  printf 'PREFIX_VERSION=1\n' > "$STATE_DIR/prefix.env"
+  printf 'PREFIX_VERSION=%s\n' "$PREFIX_SCHEMA_VERSION" > "$STATE_DIR/prefix.env"
   info "Prefix ready: $ORI_PREFIX"
 }
 
