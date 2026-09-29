@@ -1,21 +1,53 @@
-# Runtime decision
+# Runtime architecture
 
-## MVP provider
+## Selected MVP stack
 
-OriMac currently provisions the actively maintained `frankea/Whisky` fork through Homebrew and calls its embedded `WhiskyCmd` directly. This keeps OriMac small while giving us a maintained Wine wrapper with DX11 translation support on Apple Silicon.
+OriMac uses the actively maintained `frankea/Whisky` distribution as its Wine/DX11 runtime provider.
 
-The original `Whisky-App/Whisky` project is archived and must not be used as the default runtime source.
+The maintained fork currently documents:
+- Wine 11.x;
+- DXMT for native Direct3D 11 → Metal translation;
+- DXVK/MoltenVK as fallback;
+- Apple Silicon support;
+- Steam launcher compatibility.
 
-## Why this is not the final runtime architecture
+Ori itself is a DirectX 11 title, so DXMT is the preferred backend for the MVP.
 
-The long-term goal is to own the launcher and game profile while keeping the compatibility layer replaceable. `lib/whisky.sh` is therefore a provider boundary. A future provider can download a pinned Wine/GPTK-compatible runtime directly and remove the Homebrew/Whisky dependency without changing the public `./ori` interface.
+## Headless provisioning
 
-## Security / redistribution
+OriMac does **not** depend on Whisky's first-run GUI.
 
-OriMac does not vendor Apple D3DMetal or proprietary CrossOver binaries. It does not redistribute Steam or Ori. Steam is downloaded from Valve's HTTPS installer endpoint at runtime and the user signs in with their own account.
+`./ori`:
+1. installs the signed/notarized maintained Whisky app via its qualified Homebrew tap when missing;
+2. fetches the provider's `WhiskyWineVersion.plist`;
+3. derives the matching `Libraries.tar.gz` release URL;
+4. verifies SHA-256 when the provider metadata publishes it;
+5. extracts the runtime into the same Application Support location expected by WhiskyWine;
+6. initializes OriMac's own prefix with `wineboot --init`.
 
-## Current first-run limitation
+The launcher therefore owns its prefix and state while the Wine/graphics implementation remains replaceable.
 
-Whisky's CLI can create bottle metadata, but its current implementation asks the GUI to finish bootstrapping a new Wine prefix. Therefore the MVP opens Whisky once during the first `./ori` run and waits for the user to finish that initializer. Subsequent launches are CLI-driven.
+## Runtime sources
 
-This limitation is tracked as runtime work and should be removed before calling the one-command bootstrap ticket fully complete.
+Metadata:
+`https://frankea.github.io/Whisky/WhiskyWineVersion.plist`
+
+Archive template:
+`https://github.com/frankea/Whisky/releases/download/v<VERSION>/Libraries.tar.gz`
+
+Steam installer:
+`https://cdn.cloudflare.steamstatic.com/client/installer/SteamSetup.exe`
+
+## Redistribution
+
+OriMac does not vendor or commit:
+- CrossOver binaries;
+- Steam;
+- Ori game files;
+- Apple proprietary framework payloads.
+
+Runtime components are fetched from their upstream distribution at setup time. This avoids pretending that our repository grants redistribution rights it does not own.
+
+## Runtime/provider boundary
+
+All provider-specific code lives in `lib/whisky.sh`. The public interface remains `./ori`, so the runtime can later be replaced without changing user-facing commands.
