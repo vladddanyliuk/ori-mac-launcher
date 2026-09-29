@@ -1,78 +1,46 @@
 #!/usr/bin/env bash
 
-# Runtime provider: frankea/Whisky + its open-source WhiskyWine distribution.
-# We intentionally install the runtime ourselves so first-run bootstrap remains
-# headless and the public contract stays: ./ori
+# Runtime provider: frankea/Whisky's published WhiskyWine runtime.
+# OriMac downloads the pinned runtime directly and stores it under its own
+# Application Support directory. No Whisky GUI/app install is required.
 
-WHISKY_APP="/Applications/Whisky.app"
-WHISKY_CLI="$WHISKY_APP/Contents/Resources/WhiskyCmd"
-WHISKY_BREW_CASK="frankea/whisky/whisky"
-
-WHISKY_BUNDLE_ID="com.franke.Whisky"
-WHISKY_SUPPORT="${HOME}/Library/Application Support/${WHISKY_BUNDLE_ID}"
-WHISKY_LIBRARIES="$WHISKY_SUPPORT/Libraries"
-WHISKY_WINE="$WHISKY_LIBRARIES/Wine/bin/wine64"
-WHISKY_WINESERVER="$WHISKY_LIBRARIES/Wine/bin/wineserver"
 WHISKY_RELEASE_BASE="https://github.com/frankea/Whisky/releases/download"
 
-# Pinned known upstream runtime metadata from frankea/Whisky.
-# Do not silently float to a newer runtime: reproducibility beats surprise upgrades.
+# Pinned upstream runtime metadata from frankea/Whisky.
 RUNTIME_VERSION="3.1.1"
 RUNTIME_SHA256="01f3a1b43b98065fe20c529c1023b61dd79a6d2ad93bba6040865f646481ccf3"
 RUNTIME_DXMT_VERSION="0.80"
 RUNTIME_DXVK_VERSION="1.10.3"
 
+ORI_RUNTIME_DIR="$APP_SUPPORT_DIR/runtime"
+WHISKY_LIBRARIES="$ORI_RUNTIME_DIR/Libraries"
+WHISKY_WINE="$WHISKY_LIBRARIES/Wine/bin/wine64"
+WHISKY_WINESERVER="$WHISKY_LIBRARIES/Wine/bin/wineserver"
+
 ORI_PREFIX="$APP_SUPPORT_DIR/prefix"
 RUNTIME_STATE="$STATE_DIR/runtime.env"
-
-ensure_homebrew() {
-  if command_exists brew; then
-    return 0
-  fi
-
-  warn "Homebrew is required to install the signed Whisky application."
-  if ! confirm "Install Homebrew now?"; then
-    error "Cannot provision the runtime without Homebrew."
-    exit 3
-  fi
-
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-
-  if [[ -x /opt/homebrew/bin/brew ]]; then
-    eval "$(/opt/homebrew/bin/brew shellenv)"
-  elif [[ -x /usr/local/bin/brew ]]; then
-    eval "$(/usr/local/bin/brew shellenv)"
-  fi
-
-  command_exists brew || {
-    error "Homebrew installation completed but brew is unavailable."
-    exit 3
-  }
-}
-
-ensure_whisky_app() {
-  if [[ -d "$WHISKY_APP" ]]; then
-    return 0
-  fi
-
-  ensure_homebrew
-  info "Installing the maintained Whisky fork..."
-  brew install --cask "$WHISKY_BREW_CASK"
-
-  [[ -d "$WHISKY_APP" ]] || {
-    error "Whisky installation did not produce $WHISKY_APP"
-    exit 4
-  }
-}
 
 plist_value() {
   local plist="$1" key="$2"
   /usr/libexec/PlistBuddy -c "Print :$key" "$plist" 2>/dev/null
 }
 
+runtime_installed_version() {
+  local plist="$WHISKY_LIBRARIES/WhiskyWineVersion.plist"
+  [[ -f "$plist" ]] || return 1
+
+  local major minor patch
+  major="$(plist_value "$plist" 'version:major' || true)"
+  minor="$(plist_value "$plist" 'version:minor' || true)"
+  patch="$(plist_value "$plist" 'version:patch' || true)"
+  [[ -n "$major" && -n "$minor" && -n "$patch" ]] || return 1
+  printf '%s.%s.%s\n' "$major" "$minor" "$patch"
+}
+
 runtime_is_usable() {
   [[ -x "$WHISKY_WINE" ]] &&
-  [[ -f "$WHISKY_LIBRARIES/WhiskyWineVersion.plist" ]]
+  [[ -x "$WHISKY_WINESERVER" ]] &&
+  [[ "$(runtime_installed_version 2>/dev/null || true)" == "$RUNTIME_VERSION" ]]
 }
 
 write_runtime_state() {
@@ -81,62 +49,57 @@ write_runtime_state() {
   printf 'RUNTIME_DXMT_VERSION=%q\n' "$RUNTIME_DXMT_VERSION" >> "$RUNTIME_STATE"
   printf 'RUNTIME_DXVK_VERSION=%q\n' "$RUNTIME_DXVK_VERSION" >> "$RUNTIME_STATE"
 }
-load_runtime_state() {
-  if [[ -f "$RUNTIME_STATE" ]]; then
-    # shellcheck disable=SC1090
-    source "$RUNTIME_STATE"
-  fi
-}
 
 sha256_file() {
   shasum -a 256 "$1" | awk '{print $1}'
 }
 
 install_runtime_headless() {
-  write_runtime_state
-  load_runtime_state
-
-  local archive="$DOWNLOAD_DIR/Libraries-${RUNTIME_VERSION}.tar.gz"
-  local url="$WHISKY_RELEASE_BASE/v${RUNTIME_VERSION}/Libraries.tar.gz"
+  local archive="$DOWNLOAD_DIR/Libraries-$RUNTIME_VERSION.tar.gz"
+  local url="$WHISKY_RELEASE_BASE/v$RUNTIME_VERSION/Libraries.tar.gz"
+  local stage="$APP_SUPPORT_DIR/.runtime-stage"
 
   if [[ ! -s "$archive" ]]; then
-    info "Downloading WhiskyWine ${RUNTIME_VERSION} (~hundreds of MB)..."
+    info "Downloading WhiskyWine $RUNTIME_VERSION..."
     curl --fail --location --retry 3 --progress-bar "$url" -o "$archive.tmp"
     mv "$archive.tmp" "$archive"
   fi
 
-  if [[ -n "${RUNTIME_SHA256:-}" ]]; then
-    local actual
-    actual="$(sha256_file "$archive")"
-    actual="$(printf '%s' "$actual" | tr '[:upper:]' '[:lower:]')"
-    local expected
-    expected="$(printf '%s' "$RUNTIME_SHA256" | tr '[:upper:]' '[:lower:]')"
-    if [[ "$actual" != "$expected" ]]; then
-      rm -f "$archive"
-      error "WhiskyWine checksum mismatch."
-      error "Expected: $RUNTIME_SHA256"
-      error "Actual:   $actual"
-      exit 4
-    fi
-  else
-    warn "Runtime metadata did not publish a SHA-256; HTTPS transport is the only integrity layer."
-  fi
-
-  info "Installing WhiskyWine runtime headlessly..."
-  mkdir -p "$WHISKY_SUPPORT"
-  rm -rf "$WHISKY_LIBRARIES"
-
-  # The upstream archive contains Libraries/ at its root.
-  tar -xzf "$archive" -C "$WHISKY_SUPPORT"
-
-  if ! runtime_is_usable; then
-    error "Runtime extraction completed but wine64/version metadata are missing."
+  local actual expected
+  actual="$(sha256_file "$archive" | tr '[:upper:]' '[:lower:]')"
+  expected="$(printf '%s' "$RUNTIME_SHA256" | tr '[:upper:]' '[:lower:]')"
+  if [[ "$actual" != "$expected" ]]; then
+    rm -f "$archive"
+    error "WhiskyWine checksum mismatch."
+    error "Expected: $RUNTIME_SHA256"
+    error "Actual:   $actual"
     exit 4
   fi
+
+  info "Installing pinned Wine runtime..."
+  rm -rf "$stage"
+  mkdir -p "$stage"
+  tar -xzf "$archive" -C "$stage"
+
+  [[ -x "$stage/Libraries/Wine/bin/wine64" ]] || {
+    rm -rf "$stage"
+    error "Runtime archive is missing Libraries/Wine/bin/wine64."
+    exit 4
+  }
+
+  rm -rf "$ORI_RUNTIME_DIR"
+  mkdir -p "$ORI_RUNTIME_DIR"
+  mv "$stage/Libraries" "$ORI_RUNTIME_DIR/Libraries"
+  rm -rf "$stage"
+  write_runtime_state
+
+  runtime_is_usable || {
+    error "Runtime installed but failed validation."
+    exit 4
+  }
 }
 
 ensure_runtime() {
-  ensure_whisky_app
   if runtime_is_usable; then
     return 0
   fi
@@ -205,8 +168,16 @@ deploy_dxmt() {
 
 ensure_ori_bottle() {
   mkdir -p "$ORI_PREFIX"
+
   if prefix_is_initialized; then
-    if [[ ! -f "$STATE_DIR/dxmt.env" ]]; then
+    # Re-deploy when the pinned runtime/backend version changes.
+    local installed_dxmt=""
+    if [[ -f "$STATE_DIR/dxmt.env" ]]; then
+      # shellcheck disable=SC1090
+      source "$STATE_DIR/dxmt.env"
+      installed_dxmt="${DXMT_VERSION:-}"
+    fi
+    if [[ "$installed_dxmt" != "$RUNTIME_DXMT_VERSION" ]]; then
       deploy_dxmt
     fi
     return 0
@@ -224,9 +195,8 @@ ensure_ori_bottle() {
 
   deploy_dxmt
 
-  # Windows 10 mode. Ignore failure here only if the runtime does not expose winecfg
-  # as a separate executable; Wine defaults are still usable.
-  wine_run reg add 'HKCU\Software\Wine' /v Version /d win10 /f >/dev/null 2>&1 || true
+  # Keep the prefix in Windows 10 compatibility mode.
+  wine_run reg add 'HKCU\\Software\\Wine' /v Version /d win10 /f >/dev/null 2>&1 || true
 
   printf 'PREFIX_VERSION=1\n' > "$STATE_DIR/prefix.env"
   info "Prefix ready: $ORI_PREFIX"
@@ -250,6 +220,6 @@ reset_bottle() {
   fi
 
   rm -rf "$ORI_PREFIX"
-  rm -f "$STATE_DIR/prefix.env"
+  rm -f "$STATE_DIR/prefix.env" "$STATE_DIR/dxmt.env"
   info "Prefix reset complete. Run ./ori to recreate it."
 }
