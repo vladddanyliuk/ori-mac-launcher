@@ -46,12 +46,10 @@ ensure_steam() {
   info "Installing Windows Steam..."
   # /S is the NSIS silent-install flag used by SteamSetup.
   wine_program_wait "$STEAM_INSTALLER" /S
-  wineserver_wait
 
   if ! steam_is_installed; then
     warn "Silent Steam installation did not finish synchronously; retrying interactively."
     wine_program_wait "$STEAM_INSTALLER"
-    wineserver_wait
   fi
 
   steam_is_installed || {
