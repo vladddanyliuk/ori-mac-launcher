@@ -15,8 +15,8 @@ platform_check() {
 
   local major
   major="$(sw_vers -productVersion | cut -d. -f1)"
-  if [[ "$major" -lt 14 ]]; then
-    error "macOS Sonoma 14 or newer is required."
+  if [[ "$major" -lt 15 ]]; then
+    error "macOS Sequoia 15 or newer is required."
     exit 2
   fi
 
