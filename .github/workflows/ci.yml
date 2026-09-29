@@ -1,0 +1,20 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  shell:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Syntax and contract tests
+        run: ./tests/test.sh
+      - name: Install ShellCheck
+        run: brew install shellcheck
+      - name: ShellCheck
+        run: shellcheck ori lib/*.sh tests/test.sh
