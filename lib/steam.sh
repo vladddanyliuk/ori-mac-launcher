@@ -271,21 +271,41 @@ log_effective_ori_display() {
   info "Display registry after launch: width=${width:-unknown} height=${height:-unknown} fullscreen=${fullscreen:-unknown} useNative=${native:-n/a}"
 }
 
-launch_ori() {
-  if ! steam_has_login; then
-    printf 'LAST_LAUNCH_STATUS=steam-sign-in-required\n' > "$STATE_DIR/last-launch.env"
-    printf 'LAST_LAUNCH_AT=%q\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> "$STATE_DIR/last-launch.env"
-    warn "Steam is installed, but no signed-in account is detected."
-    launch_steam
-    return 8
-  fi
+prepare_direct_ori_launch() {
+  local exe_path install_dir appid_file
+  exe_path="$(ori_executable_path 2>/dev/null || true)"
+  [[ -n "$exe_path" && -f "$exe_path" ]] || {
+    error "Installed game executable was not found for $GAME_NAME."
+    return 9
+  }
 
-  local target_width target_height
+  install_dir="$(dirname "$exe_path")"
+  appid_file="$install_dir/steam_appid.txt"
+
+  # Steamworks' documented development hint also prevents
+  # SteamAPI_RestartAppIfNecessary from relaunching the Steam client. Ori's
+  # Windows releases are launchable directly, so the client UI is not required
+  # for gameplay once the files are installed.
+  printf '%s\n' "$ORI_APP_ID" > "$appid_file"
+
+  printf '%s\n' "$exe_path"
+}
+
+launch_ori() {
+  local target_width target_height exe_path install_dir
   target_width="$(profile_value display.targetWidth)"
   target_height="$(profile_value display.targetHeight)"
+  exe_path="$(prepare_direct_ori_launch)" || return $?
+  install_dir="$(dirname "$exe_path")"
 
-  info "Launching $GAME_NAME at ${target_width}x${target_height}..."
-  wine_program "$STEAM_EXE" -silent -applaunch "$ORI_APP_ID" \
+  info "Launching $GAME_NAME directly at ${target_width}x${target_height} (Steam UI bypassed)..."
+
+  # A crashed Chromium helper can keep respawning inside the bottle. Shut down
+  # the Wine session before the direct game launch so no steamwebhelper/libcef
+  # process survives into gameplay.
+  kill_wine_session
+
+  wine_game_program_cwd "$install_dir" "$exe_path" "$ORI_APP_ID" \
     -force-d3d11 \
     -screen-width "$target_width" \
     -screen-height "$target_height" \
@@ -294,6 +314,7 @@ launch_ori() {
   if wait_for_ori_process; then
     printf 'LAST_LAUNCH_STATUS=started\n' > "$STATE_DIR/last-launch.env"
     printf 'LAST_LAUNCH_GAME=%q\n' "$GAME_SLUG" >> "$STATE_DIR/last-launch.env"
+    printf 'LAST_LAUNCH_MODE=direct\n' >> "$STATE_DIR/last-launch.env"
     printf 'LAST_LAUNCH_AT=%q\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> "$STATE_DIR/last-launch.env"
     info "Game process detected: $ORI_EXE"
     sleep 4
@@ -303,8 +324,9 @@ launch_ori() {
 
   printf 'LAST_LAUNCH_STATUS=not-detected\n' > "$STATE_DIR/last-launch.env"
   printf 'LAST_LAUNCH_GAME=%q\n' "$GAME_SLUG" >> "$STATE_DIR/last-launch.env"
+  printf 'LAST_LAUNCH_MODE=direct\n' >> "$STATE_DIR/last-launch.env"
   printf 'LAST_LAUNCH_AT=%q\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> "$STATE_DIR/last-launch.env"
-  error "Steam received the launch request, but $ORI_EXE was not detected within 60 seconds."
+  error "Direct launch completed, but $ORI_EXE was not detected within 60 seconds."
   error "Diagnostics: ./ori --doctor"
   return 9
 }
