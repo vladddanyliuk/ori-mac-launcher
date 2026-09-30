@@ -25,6 +25,8 @@ Usage:
   ./ori --doctor     Print diagnostics
   ./ori --game-logs [blind|blind-de|wotw]
                      Print the newest Unity game log
+  ./ori --dxmt-logs [blind|blind-de|wotw]
+                     Print recent DXMT renderer logs
   ./ori --self-test  Validate runtime/prefix without Steam login
   ./ori --logs       Reveal log directory in Finder
   ./ori --reset      Reset the Ori bottle after confirmation
@@ -94,6 +96,9 @@ main() {
       ;;
     --game-logs)
       show_game_logs "${2:-}"
+      ;;
+    --dxmt-logs)
+      show_dxmt_logs "${2:-}"
       ;;
     --self-test)
       platform_check
