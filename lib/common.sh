@@ -7,6 +7,7 @@ DOWNLOAD_DIR="$APP_SUPPORT_DIR/downloads"
 CONFIG_DIR="$APP_SUPPORT_DIR/config"
 LOG_DIR="${HOME}/Library/Logs/${APP_NAME}"
 CURRENT_LOG="$LOG_DIR/ori.log"
+GAME_RUNTIME_LOG="$LOG_DIR/game-runtime.log"
 
 GAME_PROFILE=""
 GAME_SLUG=""
