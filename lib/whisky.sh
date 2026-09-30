@@ -12,7 +12,7 @@ RUNTIME_SHA256="01f3a1b43b98065fe20c529c1023b61dd79a6d2ad93bba6040865f646481ccf3
 RUNTIME_DXMT_VERSION="0.80"
 RUNTIME_DXVK_VERSION="1.10.3"
 PREFIX_SCHEMA_VERSION="1"
-TUNING_SCHEMA_VERSION="14"
+TUNING_SCHEMA_VERSION="15"
 
 ORI_RUNTIME_DIR="$APP_SUPPORT_DIR/runtime"
 WHISKY_LIBRARIES="$ORI_RUNTIME_DIR/Libraries"
@@ -131,6 +131,7 @@ wine_env() {
   MONO_THREADS_SUSPEND="$(profile_value environment.MONO_THREADS_SUSPEND)"
   WINE_LARGE_ADDRESS_AWARE="$(profile_value environment.WINE_LARGE_ADDRESS_AWARE)"
   D3DM_FORCE_D3D11="$(profile_value environment.D3DM_FORCE_D3D11)"
+  DXMT_CONFIG="$(profile_value environment.DXMT_CONFIG 2>/dev/null || true)"
   WINE_DISABLE_NTDLL_THREAD_REGS="$(profile_value environment.WINE_DISABLE_NTDLL_THREAD_REGS)"
   WINEPRELOADRESERVE="$(profile_value environment.WINEPRELOADRESERVE)"
 
@@ -162,6 +163,7 @@ wine_env() {
   export WINE_MAX_CONNECTIONS_PER_SERVER
   export MVK_CONFIG_LOG_LEVEL D3DM_VALIDATION MTL_DEBUG_LAYER MTL_ENABLE_METAL_EVENTS
   export MONO_THREADS_SUSPEND WINE_LARGE_ADDRESS_AWARE D3DM_FORCE_D3D11
+  [[ -n "$DXMT_CONFIG" ]] && export DXMT_CONFIG || unset DXMT_CONFIG
   export WINE_DISABLE_NTDLL_THREAD_REGS WINEPRELOADRESERVE
   export WINEFSYNC WINE_ENABLE_PIPE_SYNC_FOR_APP WINE_CPU_TOPOLOGY
   export WINE_THREAD_PRIORITY_PRESERVE WINE_ENABLE_POSIX_SIGNALS WINE_SIGPIPE_IGNORE
@@ -529,6 +531,7 @@ apply_game_tuning() {
   printf 'MAC_FULLSCREEN_CAPTURE=1\n' >> "$state"
   printf 'DPI=%q\n' "$(profile_value display.dpi)" >> "$state"
   printf 'VIDEO_MEMORY_MB=%q\n' "$(profile_value display.videoMemoryMB)" >> "$state"
+  printf 'DXMT_CONFIG=%q\n' "$(profile_value environment.DXMT_CONFIG 2>/dev/null || true)" >> "$state"
   printf 'AUDIO_DRIVER=%q\n' "$(profile_value audio.driver)" >> "$state"
   printf 'AUDIO_BUFFER=%q\n' "$(profile_value audio.directSoundBuffer)" >> "$state"
   printf 'ESYNC=%q\n' "$(profile_value environment.WINEESYNC)" >> "$state"
