@@ -31,7 +31,8 @@ You can also choose explicitly:
 - pinned WhiskyWine 3.1.1 runtime
 - DXMT 0.80 Direct3D 11 → Metal path
 - isolated Wine prefix
-- Windows Steam bootstrap/login
+- Windows Steam bootstrap/login for installation and updates
+- direct executable gameplay launch that bypasses Steam CEF once the game is installed
 - installed-game auto-detection across Steam library paths
 - per-game executable/App ID profiles
 - forced Unity 1920×1080 fullscreen baseline
@@ -62,5 +63,7 @@ You can also choose explicitly:
 ~/Library/Application Support/OriMac/
 ~/Library/Logs/OriMac/
 ```
+
+Once an Ori game is installed inside the isolated prefix, normal `./ori ...` gameplay launches the game executable directly and does not start the Windows Steam UI. Steam remains available through `./ori --steam` for installation/updates.
 
 OriMac never edits the native macOS Steam installation.
