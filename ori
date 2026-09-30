@@ -40,11 +40,13 @@ run_game() {
   ensure_ori_bottle
   select_game_for_run "$requested" || exit $?
   apply_game_tuning
-  ensure_steam
 
   if ! ori_is_installed; then
     warn "$GAME_NAME is not installed yet."
+    ensure_steam
     ensure_ori_installed_interactive || exit $?
+  else
+    info "Installed game detected; Steam client is not needed for gameplay launch."
   fi
 
   launch_ori || exit $?
