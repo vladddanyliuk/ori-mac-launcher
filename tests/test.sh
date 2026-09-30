@@ -41,13 +41,10 @@ for path, exp in zip(sys.argv[1:], expected):
     assert p["steamAppId"] == appid
     assert p["executable"] == exe
     assert p["runtimeVersion"] == "3.1.1"
+    assert p["preferredRenderer"] == "DXMT"
+    assert p["preferredRendererVersion"] == "0.80"
     if p["slug"] in ("blind", "blind-de"):
-        assert p["preferredRenderer"] == "DXVK"
-        assert p["preferredRendererVersion"] == "1.10.3"
         assert p["highDpiAware"] == 1
-    else:
-        assert p["preferredRenderer"] == "DXMT"
-        assert p["preferredRendererVersion"] == "0.80"
     assert p["display"]["targetWidth"] == 1920
     assert p["display"]["targetHeight"] == 1080
     if p["slug"] in ("blind", "blind-de"):
@@ -91,7 +88,7 @@ grep -Fq -- '-screen-fullscreen' "$ROOT/lib/steam.sh" || fail "fullscreen arg mi
 pass "Unity display args"
 
 echo "[7/12] tuning contract"
-grep -Fq 'TUNING_SCHEMA_VERSION="13"' "$ROOT/lib/whisky.sh" || fail "tuning schema not bumped"
+grep -Fq 'TUNING_SCHEMA_VERSION="14"' "$ROOT/lib/whisky.sh" || fail "tuning schema not bumped"
 grep -Fq 'CaptureDisplaysForFullscreen' "$ROOT/lib/whisky.sh" || fail "macOS fullscreen capture tuning missing"
 grep -Fq 'EnableAppNap' "$ROOT/lib/whisky.sh" || fail "App Nap disable tuning missing"
 grep -Fq 'GAME_RUNTIME_LOG' "$ROOT/lib/whisky.sh" || fail "dedicated runtime log missing"
