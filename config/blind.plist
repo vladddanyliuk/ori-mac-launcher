@@ -67,7 +67,7 @@
 
   <key>knownWorkarounds</key><array>
     <string>Launch with explicit Unity 1920x1080 fullscreen arguments because the game may expose only the macOS logical mode through Wine.</string>
-    <string>Keep Wine Retina mode disabled for the gameplay path to avoid hidden 2x backing-pixel cost.</string>
+    <string>Use Wine Retina mode with app-specific fullscreen display capture so old Unity can present crisply without leaving a normal Cocoa window on the desktop.</string>
     <string>Use DXVK/MoltenVK for this older Unity/D3D11 title, with Whisky-compatible MSync (ESYNC+MSYNC) scheduling and CoreAudio stable buffering.</string>
   </array>
 </dict></plist>
