@@ -401,6 +401,36 @@ show_game_logs() {
 }
 
 
+show_dxmt_logs() {
+  local requested="${1:-}"
+  if [[ -n "$requested" ]]; then
+    select_game_for_run "$requested" || return $?
+  else
+    select_installed_game 1 || {
+      error "No installed Ori game was detected."
+      return 1
+    }
+  fi
+
+  local dir="$LOG_DIR/dxmt/$GAME_SLUG"
+  if [[ ! -d "$dir" ]]; then
+    error "No DXMT logs found yet for $GAME_NAME."
+    return 1
+  fi
+
+  local newest
+  newest="$(find "$dir" -type f -print0 2>/dev/null | xargs -0 ls -1t 2>/dev/null | head -n 4 || true)"
+  if [[ -z "$newest" ]]; then
+    error "DXMT log directory exists but is empty: $dir"
+    return 1
+  fi
+
+  while IFS= read -r file; do
+    printf '\n===== %s =====\n' "$file"
+    tail -n 180 "$file"
+  done <<< "$newest"
+}
+
 doctor() {
   init_paths
 
