@@ -16,10 +16,10 @@
   <key>windowsVersion</key><string>win10</string>
   <key>runtimeProvider</key><string>frankea/WhiskyWine</string>
   <key>runtimeVersion</key><string>3.1.1</string>
-  <key>preferredRenderer</key><string>DXVK</string>
-  <key>preferredRendererVersion</key><string>1.10.3</string>
-  <key>fallbackRenderer</key><string>DXMT</string>
-  <key>fallbackRendererVersion</key><string>0.80</string>
+  <key>preferredRenderer</key><string>DXMT</string>
+  <key>preferredRendererVersion</key><string>0.80</string>
+  <key>fallbackRenderer</key><string>DXVK</string>
+  <key>fallbackRendererVersion</key><string>1.10.3</string>
   <key>display</key>
   <dict>
     <key>retinaMode</key><string>y</string>
@@ -61,13 +61,13 @@
     <key>WINE_DISABLE_NTDLL_THREAD_REGS</key><string>1</string>
     <key>WINEPRELOADRESERVE</key><string>1</string>
   </dict>
-  <key>dllOverrides</key><string>dxgi=n,b;d3d9=n,b;d3d10core=n,b;d3d11=n,b;d3d12=</string>
+  <key>dllOverrides</key><string>dxgi=n,b;d3d10core=n,b;d3d11=n,b;winemetal=b;d3d12=</string>
   <key>steamLaunchMode</key><string>applaunch</string>
   <key>launchArguments</key><array/>
 
   <key>knownWorkarounds</key><array>
     <string>Launch with explicit Unity 1920x1080 fullscreen arguments because the game may expose only the macOS logical mode through Wine.</string>
     <string>Use Wine Retina mode with app-specific fullscreen display capture so old Unity can present crisply without leaving a normal Cocoa window on the desktop.</string>
-    <string>Use DXVK/MoltenVK for this older Unity/D3D11 title, with Whisky-compatible MSync (ESYNC+MSYNC) scheduling and CoreAudio stable buffering.</string>
+    <string>Use DXMT for this older Unity/D3D11 title because the DXVK path repeatedly loses the D3D device during fullscreen/window resets; keep Whisky-compatible MSync (ESYNC+MSYNC) scheduling and CoreAudio stable buffering.</string>
   </array>
 </dict></plist>
