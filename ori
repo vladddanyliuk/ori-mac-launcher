@@ -39,6 +39,14 @@ run_game() {
   ensure_runtime
   ensure_ori_bottle
   select_game_for_run "$requested" || exit $?
+
+  if ori_is_installed; then
+    # Previous Steam/CEF crashes can keep helper processes alive in the bottle.
+    # Kill them before registry/backend tuning starts so they cannot emit a new
+    # libcef breakpoint during an otherwise Steam-free launch.
+    kill_wine_session
+  fi
+
   apply_game_tuning
 
   if ! ori_is_installed; then
