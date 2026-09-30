@@ -58,6 +58,7 @@
     <key>MONO_THREADS_SUSPEND</key><string>1</string>
     <key>WINE_LARGE_ADDRESS_AWARE</key><string>65536</string>
     <key>D3DM_FORCE_D3D11</key><string>1</string>
+    <key>DXMT_CONFIG</key><string>d3d11.preferredMaxFrameRate=60;</string>
     <key>WINE_DISABLE_NTDLL_THREAD_REGS</key><string>1</string>
     <key>WINEPRELOADRESERVE</key><string>1</string>
   </dict>
