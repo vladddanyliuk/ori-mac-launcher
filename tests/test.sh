@@ -91,7 +91,10 @@ grep -Fq -- '-screen-fullscreen' "$ROOT/lib/steam.sh" || fail "fullscreen arg mi
 pass "Unity display args"
 
 echo "[7/12] tuning contract"
-grep -Fq 'TUNING_SCHEMA_VERSION="12"' "$ROOT/lib/whisky.sh" || fail "tuning schema not bumped"
+grep -Fq 'TUNING_SCHEMA_VERSION="13"' "$ROOT/lib/whisky.sh" || fail "tuning schema not bumped"
+grep -Fq 'CaptureDisplaysForFullscreen' "$ROOT/lib/whisky.sh" || fail "macOS fullscreen capture tuning missing"
+grep -Fq 'EnableAppNap' "$ROOT/lib/whisky.sh" || fail "App Nap disable tuning missing"
+grep -Fq 'GAME_RUNTIME_LOG' "$ROOT/lib/whisky.sh" || fail "dedicated runtime log missing"
 grep -Fq 'WINE_MACH_PORT_TIMEOUT' "$ROOT/lib/whisky.sh" || fail "modern macOS Wine compatibility env missing"
 grep -Fq 'WINE_THREAD_PRIORITY_PRESERVE' "$ROOT/lib/whisky.sh" || fail "Wine thread-priority compatibility env missing"
 grep -Fq 'DXVK_ASYNC' "$ROOT/lib/whisky.sh" || fail "Steam DXVK async env missing"
