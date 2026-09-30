@@ -14,18 +14,18 @@ pass() {
   printf 'PASS: %s\n' "$*"
 }
 
-echo "[1/11] shell syntax"
+echo "[1/12] shell syntax"
 for file in "$ROOT/ori" "$ROOT"/lib/*.sh "$ROOT/tests/test.sh"; do
   bash -n "$file" || fail "syntax: $file"
 done
 pass "shell syntax"
 
-echo "[2/11] executable entry point"
+echo "[2/12] executable entry point"
 [[ -x "$ROOT/ori" ]] || fail "ori is not executable"
 grep -Fq 'main "$@"' "$ROOT/ori" || fail "ori does not dispatch main"
 pass "entry point"
 
-echo "[3/11] game profiles"
+echo "[3/12] game profiles"
 python3 - "$ROOT/config/blind.plist" "$ROOT/config/blind-de.plist" "$ROOT/config/wotw.plist" <<'PY'
 import plistlib, sys
 expected = [
@@ -70,12 +70,12 @@ for path, exp in zip(sys.argv[1:], expected):
 PY
 pass "game profiles"
 
-echo "[4/11] runtime pin"
+echo "[4/12] runtime pin"
 grep -Fq 'RUNTIME_VERSION="3.1.1"' "$ROOT/lib/whisky.sh" || fail "runtime is not pinned"
 grep -Fq 'RUNTIME_SHA256="01f3a1b43b98065fe20c529c1023b61dd79a6d2ad93bba6040865f646481ccf3"' "$ROOT/lib/whisky.sh" || fail "runtime checksum is not pinned"
 pass "runtime pin"
 
-echo "[5/11] multi-game detection contract"
+echo "[5/12] multi-game detection contract"
 grep -Fq 'manifest_for_appid 261570' "$ROOT/lib/steam.sh" || fail "Blind Forest detection missing"
 grep -Fq 'manifest_for_appid 387290' "$ROOT/lib/steam.sh" || fail "Blind Forest DE detection missing"
 grep -Fq 'manifest_for_appid 1057090' "$ROOT/lib/steam.sh" || fail "Will of the Wisps detection missing"
@@ -83,15 +83,15 @@ grep -Fq 'load_game_profile "blind"' "$ROOT/lib/steam.sh" || fail "Blind Forest 
 grep -Fq 'load_game_profile "wotw"' "$ROOT/lib/steam.sh" || fail "WotW profile selection missing"
 pass "multi-game detection"
 
-echo "[6/11] forced Unity display arguments"
+echo "[6/12] forced Unity display arguments"
 grep -Fq -- '-force-d3d11' "$ROOT/lib/steam.sh" || fail "D3D11 force missing"
 grep -Fq -- '-screen-width' "$ROOT/lib/steam.sh" || fail "screen width arg missing"
 grep -Fq -- '-screen-height' "$ROOT/lib/steam.sh" || fail "screen height arg missing"
 grep -Fq -- '-screen-fullscreen' "$ROOT/lib/steam.sh" || fail "fullscreen arg missing"
 pass "Unity display args"
 
-echo "[7/11] tuning contract"
-grep -Fq 'TUNING_SCHEMA_VERSION="11"' "$ROOT/lib/whisky.sh" || fail "tuning schema not bumped"
+echo "[7/12] tuning contract"
+grep -Fq 'TUNING_SCHEMA_VERSION="12"' "$ROOT/lib/whisky.sh" || fail "tuning schema not bumped"
 grep -Fq 'WINE_MACH_PORT_TIMEOUT' "$ROOT/lib/whisky.sh" || fail "modern macOS Wine compatibility env missing"
 grep -Fq 'WINE_THREAD_PRIORITY_PRESERVE' "$ROOT/lib/whisky.sh" || fail "Wine thread-priority compatibility env missing"
 grep -Fq 'DXVK_ASYNC' "$ROOT/lib/whisky.sh" || fail "Steam DXVK async env missing"
@@ -113,26 +113,34 @@ grep -Fq "screenWidthRegistryName" "$ROOT/lib/whisky.sh" || fail "profile width 
 grep -Fq "fullscreenRegistryName" "$ROOT/lib/whisky.sh" || fail "profile fullscreen registry key handling missing"
 pass "tuning contract"
 
-echo "[8/11] path safety"
+echo "[8/12] path safety"
 grep -Fq 'rm -rf "$ORI_PREFIX"' "$ROOT/lib/whisky.sh" || fail "prefix reset is not scoped"
 if grep -REn 'rm[[:space:]]+-rf[[:space:]]+(")?(~|\$HOME)(/|["[:space:]]|$)' "$ROOT/lib" "$ROOT/ori"; then
   fail "broad home-directory deletion found"
 fi
 pass "path safety"
 
-echo "[9/11] one-command README"
+echo "[9/12] one-command README"
 grep -Fq './ori' "$ROOT/README.md" || fail "README ./ori missing"
 grep -Fq 'auto-detect' "$ROOT/README.md" || fail "README auto-detect missing"
 pass "README"
 
-echo "[10/11] Steam helper DXVK isolation"
+echo "[10/12] direct launch bypass"
+grep -Fq 'prepare_direct_ori_launch()' "$ROOT/lib/steam.sh" || fail "direct Ori launcher missing"
+grep -Fq 'steam_appid.txt' "$ROOT/lib/steam.sh" || fail "steam_appid.txt setup missing"
+grep -Fq 'wine_game_program_cwd' "$ROOT/lib/steam.sh" || fail "direct game executable launch missing"
+grep -Fq 'SteamAppId=' "$ROOT/lib/whisky.sh" || fail "Steam App ID environment hint missing"
+grep -Fq 'kill_wine_session' "$ROOT/lib/steam.sh" || fail "Steam/CEF session cleanup missing"
+pass "direct launch bypass"
+
+echo "[11/12] Steam helper DXVK isolation"
 if grep -Fq -- '-cef-disable-gpu' "$ROOT/lib/steam.sh"; then
   fail "obsolete Steam CEF software-rendering flag still present"
 fi
 grep -Fq 'steamservice.exe' "$ROOT/lib/whisky.sh" || fail "Steam service helper override missing"
 pass "Steam helper DXVK isolation"
 
-echo "[11/11] secret/logging safety"
+echo "[12/12] secret/logging safety"
 if grep -REni '(steamloginsecure|refresh[_-]?token|access[_-]?token|password|passwd).*(echo|printf)' "$ROOT/lib" "$ROOT/ori"; then
   fail "possible secret logging"
 fi
