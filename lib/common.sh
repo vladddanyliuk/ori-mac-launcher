@@ -5,6 +5,7 @@ APP_SUPPORT_DIR="${HOME}/Library/Application Support/${APP_NAME}"
 STATE_DIR="$APP_SUPPORT_DIR/state"
 DOWNLOAD_DIR="$APP_SUPPORT_DIR/downloads"
 CONFIG_DIR="$APP_SUPPORT_DIR/config"
+CACHE_DIR="$APP_SUPPORT_DIR/cache"
 LOG_DIR="${HOME}/Library/Logs/${APP_NAME}"
 CURRENT_LOG="$LOG_DIR/ori.log"
 GAME_RUNTIME_LOG="$LOG_DIR/game-runtime.log"
@@ -46,7 +47,7 @@ load_game_profile() {
 load_game_profile "wotw"
 
 init_paths() {
-  mkdir -p "$STATE_DIR" "$DOWNLOAD_DIR" "$CONFIG_DIR" "$LOG_DIR"
+  mkdir -p "$STATE_DIR" "$DOWNLOAD_DIR" "$CONFIG_DIR" "$CACHE_DIR" "$LOG_DIR"
 }
 
 rotate_logs() {
