@@ -12,7 +12,7 @@ RUNTIME_SHA256="01f3a1b43b98065fe20c529c1023b61dd79a6d2ad93bba6040865f646481ccf3
 RUNTIME_DXMT_VERSION="0.80"
 RUNTIME_DXVK_VERSION="1.10.3"
 PREFIX_SCHEMA_VERSION="1"
-TUNING_SCHEMA_VERSION="11"
+TUNING_SCHEMA_VERSION="12"
 
 ORI_RUNTIME_DIR="$APP_SUPPORT_DIR/runtime"
 WHISKY_LIBRARIES="$ORI_RUNTIME_DIR/Libraries"
@@ -192,6 +192,26 @@ wine_program_wait() {
   shift
   wine_env
   "$WHISKY_WINE" start /wait /unix "$executable" "$@"
+}
+
+wine_game_program_cwd() {
+  local cwd="$1"
+  local executable="$2"
+  local appid="$3"
+  shift 3
+
+  wine_env
+  (
+    cd "$cwd"
+    SteamAppId="$appid" SteamGameId="$appid" \
+      "$WHISKY_WINE" start /unix "$executable" "$@"
+  )
+}
+
+kill_wine_session() {
+  wine_env
+  "$WHISKY_WINESERVER" -k >/dev/null 2>&1 || true
+  "$WHISKY_WINESERVER" -w >/dev/null 2>&1 || true
 }
 
 wineserver_wait() {
