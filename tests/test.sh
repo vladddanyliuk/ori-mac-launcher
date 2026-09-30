@@ -88,7 +88,9 @@ grep -Fq -- '-screen-fullscreen' "$ROOT/lib/steam.sh" || fail "fullscreen arg mi
 pass "Unity display args"
 
 echo "[7/12] tuning contract"
-grep -Fq 'TUNING_SCHEMA_VERSION="14"' "$ROOT/lib/whisky.sh" || fail "tuning schema not bumped"
+grep -Fq 'TUNING_SCHEMA_VERSION="15"' "$ROOT/lib/whisky.sh" || fail "tuning schema not bumped"
+grep -Fq 'DXMT_CONFIG' "$ROOT/lib/whisky.sh" || fail "DXMT frame pacing env missing"
+grep -Fq 'd3d11.preferredMaxFrameRate=60;' "$ROOT/config/blind.plist" || fail "Blind Forest 60 FPS Metal pacing missing"
 grep -Fq 'CaptureDisplaysForFullscreen' "$ROOT/lib/whisky.sh" || fail "macOS fullscreen capture tuning missing"
 grep -Fq 'EnableAppNap' "$ROOT/lib/whisky.sh" || fail "App Nap disable tuning missing"
 grep -Fq 'GAME_RUNTIME_LOG' "$ROOT/lib/whisky.sh" || fail "dedicated runtime log missing"
