@@ -91,7 +91,12 @@ grep -Fq -- '-screen-fullscreen' "$ROOT/lib/steam.sh" || fail "fullscreen arg mi
 pass "Unity display args"
 
 echo "[7/11] tuning contract"
-grep -Fq 'TUNING_SCHEMA_VERSION="10"' "$ROOT/lib/whisky.sh" || fail "tuning schema not bumped"
+grep -Fq 'TUNING_SCHEMA_VERSION="11"' "$ROOT/lib/whisky.sh" || fail "tuning schema not bumped"
+grep -Fq 'WINE_MACH_PORT_TIMEOUT' "$ROOT/lib/whisky.sh" || fail "modern macOS Wine compatibility env missing"
+grep -Fq 'WINE_THREAD_PRIORITY_PRESERVE' "$ROOT/lib/whisky.sh" || fail "Wine thread-priority compatibility env missing"
+grep -Fq 'DXVK_ASYNC' "$ROOT/lib/whisky.sh" || fail "Steam DXVK async env missing"
+grep -Fq 'steamwebhelper.exe' "$ROOT/lib/whisky.sh" || fail "Steam helper AppDefaults scope missing"
+grep -Fq "reg add \"\$steam_key\" /v d3d11" "$ROOT/lib/whisky.sh" || fail "Steam helper DXVK overrides missing"
 grep -Fq 'sync_program_dll_overrides()' "$ROOT/lib/whisky.sh" || fail "per-program DLL override sync missing"
 grep -Fq 'AppDefaults' "$ROOT/lib/whisky.sh" || fail "Wine AppDefaults override scope missing"
 if grep -Fq 'export WINEDLLOVERRIDES' "$ROOT/lib/whisky.sh"; then
@@ -120,10 +125,12 @@ grep -Fq './ori' "$ROOT/README.md" || fail "README ./ori missing"
 grep -Fq 'auto-detect' "$ROOT/README.md" || fail "README auto-detect missing"
 pass "README"
 
-echo "[10/11] Steam CEF GPU isolation"
-grep -Fq -- '-cef-disable-gpu' "$ROOT/lib/steam.sh" || fail "Steam CEF GPU disable flag missing"
-grep -Fq -- '-cef-disable-gpu-compositing' "$ROOT/lib/steam.sh" || fail "Steam CEF compositing disable flag missing"
-pass "Steam CEF GPU isolation"
+echo "[10/11] Steam helper DXVK isolation"
+if grep -Fq -- '-cef-disable-gpu' "$ROOT/lib/steam.sh"; then
+  fail "obsolete Steam CEF software-rendering flag still present"
+fi
+grep -Fq 'steamservice.exe' "$ROOT/lib/whisky.sh" || fail "Steam service helper override missing"
+pass "Steam helper DXVK isolation"
 
 echo "[11/11] secret/logging safety"
 if grep -REni '(steamloginsecure|refresh[_-]?token|access[_-]?token|password|passwd).*(echo|printf)' "$ROOT/lib" "$ROOT/ori"; then
