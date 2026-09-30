@@ -12,7 +12,7 @@ RUNTIME_SHA256="01f3a1b43b98065fe20c529c1023b61dd79a6d2ad93bba6040865f646481ccf3
 RUNTIME_DXMT_VERSION="0.80"
 RUNTIME_DXVK_VERSION="1.10.3"
 PREFIX_SCHEMA_VERSION="1"
-TUNING_SCHEMA_VERSION="10"
+TUNING_SCHEMA_VERSION="11"
 
 ORI_RUNTIME_DIR="$APP_SUPPORT_DIR/runtime"
 WHISKY_LIBRARIES="$ORI_RUNTIME_DIR/Libraries"
@@ -133,6 +133,21 @@ wine_env() {
   D3DM_FORCE_D3D11="$(profile_value environment.D3DM_FORCE_D3D11)"
   WINE_DISABLE_NTDLL_THREAD_REGS="$(profile_value environment.WINE_DISABLE_NTDLL_THREAD_REGS)"
   WINEPRELOADRESERVE="$(profile_value environment.WINEPRELOADRESERVE)"
+
+  # Mirror the maintained Whisky macOS compatibility layer. These matter on
+  # Sequoia 15.4+ and newer releases, where Wine process/thread creation changed.
+  WINEFSYNC="0"
+  WINE_ENABLE_PIPE_SYNC_FOR_APP="0"
+  WINE_CPU_TOPOLOGY="8:8"
+  WINE_THREAD_PRIORITY_PRESERVE="1"
+  WINE_ENABLE_POSIX_SIGNALS="1"
+  WINE_SIGPIPE_IGNORE="1"
+  WINE_PRELOADER_DEBUG="0"
+  WINE_DISABLE_FAST_PATH="1"
+  WINE_MACH_PORT_TIMEOUT="30000"
+  WINE_MACH_PORT_RETRY_COUNT="5"
+  DXVK_ASYNC="1"
+
   CX_ROOT="$WHISKY_LIBRARIES/Wine"
   PATH="$WHISKY_LIBRARIES/Wine/bin:$PATH"
   export WINEPREFIX WINEDEBUG WINEESYNC
@@ -148,6 +163,10 @@ wine_env() {
   export MVK_CONFIG_LOG_LEVEL D3DM_VALIDATION MTL_DEBUG_LAYER MTL_ENABLE_METAL_EVENTS
   export MONO_THREADS_SUSPEND WINE_LARGE_ADDRESS_AWARE D3DM_FORCE_D3D11
   export WINE_DISABLE_NTDLL_THREAD_REGS WINEPRELOADRESERVE
+  export WINEFSYNC WINE_ENABLE_PIPE_SYNC_FOR_APP WINE_CPU_TOPOLOGY
+  export WINE_THREAD_PRIORITY_PRESERVE WINE_ENABLE_POSIX_SIGNALS WINE_SIGPIPE_IGNORE
+  export WINE_PRELOADER_DEBUG WINE_DISABLE_FAST_PATH WINE_MACH_PORT_TIMEOUT
+  export WINE_MACH_PORT_RETRY_COUNT DXVK_ASYNC
   export CX_ROOT PATH
 
   # Deliberately keep DLL load-order overrides out of the process
@@ -297,18 +316,20 @@ clear_dll_override_scope() {
 
 sync_program_dll_overrides() {
   local game_key="HKCU\\Software\\Wine\\AppDefaults\\$ORI_EXE\\DllOverrides"
-  local clause name mode
+  local backend clause name mode exe
   local -a clauses
 
-  # The bottle itself has no graphics override. This keeps Steam and all of its
-  # helper processes on Wine's default/builtin graphics stack.
+  backend="$(profile_value preferredRenderer)"
+
+  # Keep the bottle-wide scope empty; all native D3D load-order decisions are
+  # per executable so Steam and the game can be tuned independently.
   wine_run reg delete 'HKCU\\Software\\Wine\\DllOverrides' /f >/dev/null 2>&1 || true
 
-  # Prune stale program scopes from earlier launcher revisions.
-  clear_dll_override_scope "steam.exe"
-  clear_dll_override_scope "steamwebhelper.exe"
-  clear_dll_override_scope "$ORI_EXE"
+  for exe in steam.exe steamwebhelper.exe steamservice.exe "$ORI_EXE"; do
+    clear_dll_override_scope "$exe"
+  done
 
+  # Game-specific override from the selected profile.
   IFS=';' read -r -a clauses <<< "$(profile_value dllOverrides)"
   for clause in "${clauses[@]}"; do
     name="${clause%%=*}"
@@ -316,6 +337,20 @@ sync_program_dll_overrides() {
     [[ -n "$name" ]] || continue
     wine_run reg add "$game_key" /v "$name" /t REG_SZ /d "$mode" /f >/dev/null
   done
+
+  # Maintained Whisky explicitly gives Steam and steamwebhelper the DXVK preset
+  # when DXVK is active. Without this, Chromium's GPU process can hit libcef
+  # breakpoints while native DXVK DLLs are present in the prefix.
+  if [[ "$backend" == "DXVK" ]]; then
+    for exe in steam.exe steamwebhelper.exe steamservice.exe; do
+      local steam_key="HKCU\\Software\\Wine\\AppDefaults\\$exe\\DllOverrides"
+      wine_run reg add "$steam_key" /v dxgi /t REG_SZ /d 'n,b' /f >/dev/null
+      wine_run reg add "$steam_key" /v d3d9 /t REG_SZ /d 'n,b' /f >/dev/null
+      wine_run reg add "$steam_key" /v d3d10core /t REG_SZ /d 'n,b' /f >/dev/null
+      wine_run reg add "$steam_key" /v d3d11 /t REG_SZ /d 'n,b' /f >/dev/null
+      wine_run reg add "$steam_key" /v d3d12 /t REG_SZ /d '' /f >/dev/null
+    done
+  fi
 }
 
 apply_graphics_backend() {
