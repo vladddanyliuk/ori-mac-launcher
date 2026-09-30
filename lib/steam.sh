@@ -7,13 +7,6 @@ STEAM_EXE="$STEAM_DIR/Steam.exe"
 STEAM_APPS="$STEAM_DIR/steamapps"
 STEAM_LOGIN_USERS="$STEAM_DIR/config/loginusers.vdf"
 
-# Steam's Chromium UI can crash in its GPU thread under Wine even when the
-# game's graphics backend is isolated correctly. Keep Steam's own CEF UI on
-# software compositing; this does not change the game's D3D backend.
-STEAM_CEF_ARGS=(
-  -cef-disable-gpu
-  -cef-disable-gpu-compositing
-)
 
 steam_installer_is_sane() {
   [[ -s "$STEAM_INSTALLER" ]] || return 1
@@ -170,8 +163,8 @@ steam_has_login() {
 }
 
 launch_steam() {
-  info "Opening Windows Steam with CEF GPU acceleration disabled..."
-  wine_program "$STEAM_EXE" "${STEAM_CEF_ARGS[@]}"
+  info "Opening Windows Steam..."
+  wine_program "$STEAM_EXE"
 }
 
 wait_for_steam_login() {
@@ -292,7 +285,7 @@ launch_ori() {
   target_height="$(profile_value display.targetHeight)"
 
   info "Launching $GAME_NAME at ${target_width}x${target_height}..."
-  wine_program "$STEAM_EXE" "${STEAM_CEF_ARGS[@]}" -silent -applaunch "$ORI_APP_ID" \
+  wine_program "$STEAM_EXE" -silent -applaunch "$ORI_APP_ID" \
     -force-d3d11 \
     -screen-width "$target_width" \
     -screen-height "$target_height" \
