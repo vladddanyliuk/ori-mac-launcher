@@ -12,7 +12,7 @@ RUNTIME_SHA256="01f3a1b43b98065fe20c529c1023b61dd79a6d2ad93bba6040865f646481ccf3
 RUNTIME_DXMT_VERSION="0.80"
 RUNTIME_DXVK_VERSION="1.10.3"
 PREFIX_SCHEMA_VERSION="1"
-TUNING_SCHEMA_VERSION="12"
+TUNING_SCHEMA_VERSION="13"
 
 ORI_RUNTIME_DIR="$APP_SUPPORT_DIR/runtime"
 WHISKY_LIBRARIES="$ORI_RUNTIME_DIR/Libraries"
@@ -201,11 +201,15 @@ wine_game_program_cwd() {
   shift 3
 
   wine_env
+  {
+    printf '\n[%s] direct launch: %s (App %s)\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$executable" "$appid"
+  } >> "$GAME_RUNTIME_LOG"
+
   (
     cd "$cwd"
     SteamAppId="$appid" SteamGameId="$appid" \
       "$WHISKY_WINE" start /unix "$executable" "$@"
-  )
+  ) >> "$GAME_RUNTIME_LOG" 2>&1
 }
 
 kill_wine_session() {
@@ -464,6 +468,15 @@ apply_display_tuning() {
     wine_run reg delete 'HKCU\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers' \
       /v "$app_name" /f >/dev/null 2>&1 || true
   fi
+
+  # Wine's macOS driver has a separate fullscreen-capture switch. Without it,
+  # old Unity 5 can report fullscreen while the Cocoa window remains a normal
+  # 1710x1107 desktop-sized window. Make this app-specific so Steam is untouched.
+  local mac_driver_key="HKCU\\Software\\Wine\\AppDefaults\\$ORI_EXE\\Mac Driver"
+  wine_run reg add "$mac_driver_key" /v CaptureDisplaysForFullscreen /t REG_SZ /d Y /f >/dev/null
+  wine_run reg add "$mac_driver_key" /v EnableAppNap /t REG_SZ /d N /f >/dev/null
+  wine_run reg add "$mac_driver_key" /v WindowsFloatWhenInactive /t REG_SZ /d none /f >/dev/null
+
   wine_run reg add 'HKCU\Control Panel\Desktop' /v LogPixels /t REG_DWORD /d "$(profile_value display.dpi)" /f >/dev/null
   wine_run reg add 'HKCU\Software\Wine\Direct3D' /v VideoMemorySize /t REG_SZ /d "$(profile_value display.videoMemoryMB)" /f >/dev/null
 
@@ -513,6 +526,7 @@ apply_game_tuning() {
   printf 'BACKEND=%q\n' "$(profile_value preferredRenderer)" >> "$state"
   printf 'RETINA_MODE=%q\n' "$(profile_value display.retinaMode)" >> "$state"
   printf 'HIGH_DPI_AWARE=%q\n' "$(profile_value highDpiAware 2>/dev/null || echo 0)" >> "$state"
+  printf 'MAC_FULLSCREEN_CAPTURE=1\n' >> "$state"
   printf 'DPI=%q\n' "$(profile_value display.dpi)" >> "$state"
   printf 'VIDEO_MEMORY_MB=%q\n' "$(profile_value display.videoMemoryMB)" >> "$state"
   printf 'AUDIO_DRIVER=%q\n' "$(profile_value audio.driver)" >> "$state"
